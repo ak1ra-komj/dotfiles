@@ -1,0 +1,14 @@
+# Use `tar -cf system_backup.tar / -X system_backup.excludes`
+# or use `tar -cjf system_backup.tar.xz / -X system_backup.excludes`
+/proc/*
+/dev/*
+/sys/*
+/tmp/*
+/mnt/*
+/media/*
+/run/*
+/var/lock/*
+/var/run/*
+/lost+found
+/home/*
+/data/*
