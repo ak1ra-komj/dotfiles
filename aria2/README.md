@@ -27,7 +27,7 @@ YAAW Web-UI: [yaaw](https://github.com/binux/yaaw)
 
 ### Windows 下开机自启
 
-将以下内容保存为 aria2s.vbs, 根据实际情况修改以下路径。
+将以下内容保存为 aria2c.vbs, 根据实际情况修改以下路径。
 
 ```
 set ws=wscript.createobject("wscript.shell")
