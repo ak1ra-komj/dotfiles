@@ -15,9 +15,13 @@ HISTCONTROL=ignoreboth
 # append to the history file, don't overwrite it
 shopt -s histappend
 
+# write every history using PROMPT_COMMAND
+PROMPT_COMMAND="${PROMPT_COMMAND:-:}; history -a"
+
 # for setting history length see HISTSIZE and HISTFILESIZE in bash(1)
-HISTSIZE=1000
-HISTFILESIZE=2000
+# ref: https://felixc.at/2013/09/how-to-avoid-losing-any-history-lines/
+HISTSIZE=10000
+HISTFILESIZE=400000000
 
 # check the window size after each command and, if necessary,
 # update the values of LINES and COLUMNS.
@@ -105,7 +109,7 @@ fi
 
 # bashrc.d definitions.
 if [ -d ~/.config/bash ]; then
-    for f in `find ~/.config/bash -name '*.conf'`; do source $f; done
+    for f in `find ~/.config/bash -name '*.bashrc'`; do source $f; done
 fi
 
 # python3 -m pip install --user
