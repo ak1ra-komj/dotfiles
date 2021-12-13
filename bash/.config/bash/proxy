@@ -1,0 +1,10 @@
+#! /bin/bash
+# user proxy
+
+# how to get wsl windows host ip address? 2 method
+# proxy_server="$(awk '/^nameserver/ {print $2}' /etc/resolv.conf | head -n1)"
+proxy_server="$(ip route show default | awk '{print $3}')"
+export http_proxy="http://$proxy_server:1082"
+export https_proxy="$http_proxy"
+export no_proxy="localhost,127.0.0.1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
+alias noproxy="unset http_proxy https_proxy no_proxy"
