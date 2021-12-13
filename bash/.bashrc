@@ -103,14 +103,9 @@ if ! shopt -oq posix; then
   fi
 fi
 
-# Alias definitions.
-if [ -f ~/.config/bash/aliases ]; then
-    . ~/.config/bash/aliases
-fi
-
-# functions definitions.
-if [ -f ~/.config/bash/functions ]; then
-    . ~/.config/bash/functions
+# bashrc.d definitions.
+if [ -d ~/.config/bash ]; then
+    for f in `find ~/.config/bash -name '*.conf'`; do source $f; done
 fi
 
 # python3 -m pip install --user
