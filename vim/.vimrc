@@ -2,9 +2,9 @@
 set nocompatible
 
 " In many terminal emulators the mouse works just fine, thus enable it.
-"if has('mouse')
-"  set mouse=a
-"endif
+if has('mouse')
+  set mouse=a
+endif
 
 " Switch syntax highlighting on, when the terminal has colors
 " Also switch on highlighting the last used search pattern.
@@ -16,7 +16,7 @@ endif
 " allow backspacing over everything in insert mode
 set backspace=indent,eol,start
 
-set history=50		" keep 50 lines of command line history
+set history=500		" keep 50 lines of command line history
 set ruler		" show the cursor position all the time
 set showcmd		" display incomplete commands
 set incsearch		" do incremental searching
@@ -43,9 +43,8 @@ set noexpandtab
 "  koehler, morning, murphy, pablo
 "  peachpuff, ron, shine, slate
 "  torte, zellner
-colorscheme delek
+colorscheme elflord
 
 " Some key binds
 inoremap jk <esc>
-
 
