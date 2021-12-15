@@ -107,9 +107,9 @@ if ! shopt -oq posix; then
   fi
 fi
 
-# bashrc.d definitions.
-if [ -d ~/.config/bash ]; then
-    for f in `find ~/.config/bash -name '*.bashrc'`; do source $f; done
+# ~/bashrc.d definitions
+if [ -d ~/.bashrc.d ]; then
+    for f in `find ~/.bashrc.d -name '*.bashrc'`; do source $f; done
 fi
 
 # python3 -m pip install --user
@@ -119,4 +119,10 @@ export PATH=$HOME/.local/bin:$PATH
 export GOPATH=$HOME/.go
 export PATH=$GOPATH/bin:/usr/local/go/bin:$PATH
 export GOPROXY=https://goproxy.cn,direct
+
+# nvm
+# curl https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh > nvm.sh
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
+[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
 

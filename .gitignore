@@ -1,4 +1,4 @@
 
-# proxy
-bash/.config/bash/proxy.bashrc
+bash/.bashrc.d/http_proxy
+bash/.bashrc.d/jumpserver.bashrc
 
