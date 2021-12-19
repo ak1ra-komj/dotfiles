@@ -113,7 +113,7 @@ if [ -d ~/.bashrc.d ]; then
 fi
 
 # python3 -m pip install --user
-export PATH=$HOME/.local/bin:$PATH
+export PATH=$HOME/bin:$HOME/.local/bin:$PATH
 
 # golang
 export GOPATH=$HOME/.go
