@@ -2,8 +2,8 @@
 
 function pixiv2gif() {
     local infile="$1"
-    local delay="$2"
-    local outfile_format="$3"
+    local outfile_format="$2"
+    local delay="$3"
     local infile_dir=$(dirname "$infile")
     local infile_basename=$(basename "$infile")
     local exdir="${infile_basename%.*}"
@@ -31,4 +31,4 @@ test -n "$outfile_format" || outfile_format=mp4
 
 export -f pixiv2gif
 find . -type f -name '*.zip' -print0 | \
-    parallel -0 pixiv2gif {} "" "$outfile_format"
+    parallel -0 pixiv2gif {} "$outfile_format"
