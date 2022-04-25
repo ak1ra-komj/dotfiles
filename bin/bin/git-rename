@@ -1,0 +1,44 @@
+#! /bin/bash
+# author: ak1ra
+# date: 2022-04-25
+# Update git GIT_COMMITTER_NAME/GIT_COMMITTER_EMAIL using git filter-branch
+# ref: https://help.github.com/en/github/using-git/changing-author-info
+# ref: https://developer.github.com/v3/users/
+
+function usage() {
+    cat << EOF
+
+Usage:
+    "$0" <old-committer-email> [old-author-email]
+
+EOF
+    exit 1
+}
+
+function git_rename() {
+    git filter-branch --env-filter '
+        if [ "$GIT_COMMITTER_EMAIL" = "$OLD_GIT_COMMITTER_EMAIL" ]; then
+            export GIT_COMMITTER_NAME="$NEW_GIT_COMMITTER_NAME"
+            export GIT_COMMITTER_EMAIL="$NEW_GIT_COMMITTER_EMAIL"
+        fi
+        if [ "$GIT_AUTHOR_EMAIL" = "$OLD_GIT_AUTHOR_EMAIL" ]; then
+            export GIT_AUTHOR_NAME="$NEW_GIT_AUTHOR_NAME"
+            export GIT_AUTHOR_EMAIL="$NEW_GIT_AUTHOR_EMAIL"
+        fi
+    ' --tag-name-filter cat -- --branches --tags
+}
+
+export OLD_GIT_COMMITTER_EMAIL="$1"
+test -n "$OLD_GIT_COMMITTER_EMAIL" || usage
+
+export OLD_GIT_AUTHOR_EMAIL="$2"
+test -n "$OLD_GIT_AUTHOR_EMAIL" || export OLD_GIT_AUTHOR_EMAIL="$OLD_GIT_COMMITTER_EMAIL"
+
+# change settings below before use this script
+export NEW_GIT_COMMITTER_NAME="ak1ra"
+export NEW_GIT_COMMITTER_EMAIL="git@ak1ra.xyz"
+export NEW_GIT_AUTHOR_NAME="$NEW_GIT_COMMITTER_NAME"
+export NEW_GIT_AUTHOR_EMAIL="$NEW_GIT_COMMITTER_EMAIL"
+
+git_rename
+

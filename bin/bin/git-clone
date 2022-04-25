@@ -1,0 +1,21 @@
+#! /bin/bash
+
+repo="$1"
+code_dir="$HOME/code"
+
+repo=${repo%.git}
+if echo $repo | grep -qE "^git@"; then
+    repo_dir="${code_dir}/$(echo ${repo#git@} | tr ':' '/')"
+elif echo $repo | grep -qE "^https?://"; then
+    repo_dir="${code_dir}/${repo#http?://}"
+else
+    exit 1
+fi
+
+if [ -d "$repo_dir" ]; then
+    pushd $repo_dir
+    git fetch
+    popd
+else
+    git clone $repo $repo_dir
+fi
