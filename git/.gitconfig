@@ -1,0 +1,12 @@
+[init]
+    defaultBranch = master
+[user]
+    name = ak1ra
+    email = git@ak1ra.xyz
+[pull]
+    rebase = false
+
+# https://difftastic.wilfred.me.uk/git.html
+[diff]
+    external = difft
+
