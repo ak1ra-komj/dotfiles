@@ -1,7 +1,7 @@
 
 # http_proxy
 if [ -f ~/.bashrc.d/http_proxy ]; then
-    if [ -n "$WSL_DISTRO_NAME" ]; then
+    if uname -r | grep -qE '[Mm]icrosoft'; then
         # wsl_host="$(awk '/^nameserver/ {print $2}' /etc/resolv.conf | head -n1)"
         wsl_host="$(ip route show default | awk '{print $3}')"
         export http_proxy="http://$wsl_host:1082"
