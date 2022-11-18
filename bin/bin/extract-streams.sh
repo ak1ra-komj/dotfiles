@@ -16,7 +16,7 @@ function extract_streams() {
             continue
         fi
         local stream_index=$(echo $stream | jq -r .index)
-        local stream_codec_name=$(echo $stream | jq -r .codec_name)
+        local stream_codec_name=$(echo $stream | jq -r .codec_name | sed 's/subrip/srt/g')
         local stream_language=$(echo $stream | jq -r .tags.language)
         local stream_output="${input%.*}.${stream_language}.${stream_index}.${stream_codec_name}"
         local map_args="-map 0:$stream_index \"$stream_output\" $map_args"
