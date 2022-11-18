@@ -129,3 +129,5 @@ export NVM_DIR="$HOME/.nvm"
 # rust
 . "$HOME/.cargo/env"
 
+# gcloud
+export GOOGLE_APPLICATION_CREDENTIALS="$HOME/.config/gcloud/ak1ra-lab-api-user.json"

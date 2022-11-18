@@ -12,5 +12,11 @@ if [ -f ~/.bashrc.d/http_proxy ]; then
     fi
     export no_proxy="localhost,127.0.0.1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
     alias noproxy="unset http_proxy https_proxy no_proxy"
+
+    # /etc/apt/apt.conf.d/02proxy
+    cat > /tmp/apt.conf.d-02proxy <<EOF
+Acquire::HTTP::Proxy "$http_proxy";
+Acquire::HTTPS::Proxy "$http_proxy";
+EOF
 fi
 
