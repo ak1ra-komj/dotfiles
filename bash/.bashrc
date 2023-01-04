@@ -23,6 +23,9 @@ PROMPT_COMMAND="${PROMPT_COMMAND:-:}; history -a"
 HISTSIZE=10000
 HISTFILESIZE=400000000
 
+# /etc/os-release
+OS_RELEASE_ID="$(awk -F= '/^ID=/ {print $2}' /etc/os-release | tr 'A-Z' 'a-z')"
+
 # check the window size after each command and, if necessary,
 # update the values of LINES and COLUMNS.
 shopt -s checkwinsize
@@ -76,7 +79,7 @@ case "$TERM" in
 esac
 
 # enable color support of ls and also add handy aliases
-if [ "$(awk -F= '/^ID=/ {print $2}' /etc/os-release)" == "freebsd" ]; then
+if [ "$OS_RELEASE_ID" == "freebsd" ]; then
     alias ls='ls -G --color=auto'
 fi
 if [ -x /usr/bin/dircolors ]; then
@@ -110,6 +113,11 @@ fi
 # enable programmable completion features (you don't need to enable
 # this, if it's already enabled in /etc/bash.bashrc and /etc/profile
 # sources /etc/bash.bashrc).
+if [ "$OS_RELEASE_ID" == "freebsd" ]; then
+    if [ -n "$PS1" && -f /usr/local/share/bash-completion/bash_completion.sh ]; then
+        source /usr/local/share/bash-completion/bash_completion.sh
+    fi
+fi
 if ! shopt -oq posix; then
     if [ -f /usr/share/bash-completion/bash_completion ]; then
         . /usr/share/bash-completion/bash_completion
