@@ -5,7 +5,7 @@
 # If not running interactively, don't do anything
 case $- in
     *i*) ;;
-      *) return;;
+    *) return ;;
 esac
 
 # don't put duplicate lines or lines starting with space in the history.
@@ -41,7 +41,7 @@ fi
 
 # set a fancy prompt (non-color, unless we know we "want" color)
 case "$TERM" in
-    xterm-color|*-256color) color_prompt=yes;;
+    xterm-color | *-256color) color_prompt=yes ;;
 esac
 
 # uncomment for a colored prompt, if the terminal has the capability; turned
@@ -51,12 +51,12 @@ esac
 
 if [ -n "$force_color_prompt" ]; then
     if [ -x /usr/bin/tput ] && tput setaf 1 >&/dev/null; then
-	# We have color support; assume it's compliant with Ecma-48
-	# (ISO/IEC-6429). (Lack of such support is extremely rare, and such
-	# a case would tend to support setf rather than setaf.)
-	color_prompt=yes
+        # We have color support; assume it's compliant with Ecma-48
+        # (ISO/IEC-6429). (Lack of such support is extremely rare, and such
+        # a case would tend to support setf rather than setaf.)
+        color_prompt=yes
     else
-	color_prompt=
+        color_prompt=
     fi
 fi
 
@@ -69,14 +69,16 @@ unset color_prompt force_color_prompt
 
 # If this is an xterm set the title to user@host:dir
 case "$TERM" in
-xterm*|rxvt*)
-    PS1="\[\e]0;${debian_chroot:+($debian_chroot)}\u@\h: \w\a\]$PS1"
-    ;;
-*)
-    ;;
+    xterm* | rxvt*)
+        PS1="\[\e]0;${debian_chroot:+($debian_chroot)}\u@\h: \w\a\]$PS1"
+        ;;
+    *) ;;
 esac
 
 # enable color support of ls and also add handy aliases
+if [ "$(awk -F= '/^ID=/ {print $2}' /etc/os-release)" == "freebsd" ]; then
+    alias ls='ls -G --color=auto'
+fi
 if [ -x /usr/bin/dircolors ]; then
     test -r ~/.dircolors && eval "$(dircolors -b ~/.dircolors)" || eval "$(dircolors -b)"
     alias ls='ls --color=auto'
@@ -96,38 +98,81 @@ alias ll='ls -l'
 alias la='ls -A'
 alias l='ls -CF'
 
+# Alias definitions.
+# You may want to put all your additions into a separate file like
+# ~/.bash_aliases, instead of adding them here directly.
+# See /usr/share/doc/bash-doc/examples in the bash-doc package.
+
+if [ -f ~/.bash_aliases ]; then
+    . ~/.bash_aliases
+fi
+
 # enable programmable completion features (you don't need to enable
 # this, if it's already enabled in /etc/bash.bashrc and /etc/profile
 # sources /etc/bash.bashrc).
 if ! shopt -oq posix; then
-  if [ -f /usr/share/bash-completion/bash_completion ]; then
-    . /usr/share/bash-completion/bash_completion
-  elif [ -f /etc/bash_completion ]; then
-    . /etc/bash_completion
-  fi
+    if [ -f /usr/share/bash-completion/bash_completion ]; then
+        . /usr/share/bash-completion/bash_completion
+    elif [ -f /etc/bash_completion ]; then
+        . /etc/bash_completion
+    fi
 fi
 
-# ~/bashrc.d definitions
-if [ -d ~/.bashrc.d ]; then
-    for f in `find ~/.bashrc.d -name '*.bashrc'`; do source $f; done
+## Custom settings
+# http_proxy / https_proxy environments
+# 手动 touch ~/.http_proxy 文件作为 http_proxy 环境变量的开关
+if [ -f ~/.http_proxy ]; then
+    if uname -r | grep -qE '[Mm]icrosoft'; then
+        # wsl_host="$(awk '/^nameserver/ {print $2}' /etc/resolv.conf | head -n1)"
+        wsl_host="$(ip route show default | awk '{print $3}')"
+        export http_proxy="http://$wsl_host:1082"
+        export https_proxy="$http_proxy"
+    else
+        export http_proxy="http://127.0.0.1:1082"
+        export https_proxy="$http_proxy"
+    fi
+    export no_proxy="localhost,127.0.0.1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
+    alias noproxy="unset http_proxy https_proxy no_proxy"
+
+    if [ -d /etc/apt ]; then
+        # 需手动添加软链接, 为实现为 WSL 2 中的 apt 设置 HTTP::Proxy
+        # ln -s /tmp/apt.conf.d-02proxy /etc/apt/apt.conf.d/02proxy
+        cat > /tmp/apt.conf.d-02proxy <<EOF
+Acquire::HTTP::Proxy "$http_proxy";
+Acquire::HTTPS::Proxy "$http_proxy";
+EOF
+    fi
 fi
 
 # python3 -m pip install --user
 export PATH=$HOME/bin:$HOME/.local/bin:$PATH
 
 # golang
-export GOPATH=$HOME/.go
-export PATH=$GOPATH/bin:/usr/local/go/bin:$PATH
-export GOPROXY=https://goproxy.cn,direct
+GOPATH=$HOME/.go
+if [ -d "$GOPATH" ]; then
+    export GOPATH
+    export PATH=$GOPATH/bin:/usr/local/go/bin:$PATH
+    export GOPROXY=https://goproxy.cn,direct
+fi
 
 # nvm
 # curl https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh > nvm.sh
-export NVM_DIR="$HOME/.nvm"
-test -s "$NVM_DIR/nvm.sh" && \. "$NVM_DIR/nvm.sh"  # This loads nvm
-test -s "$NVM_DIR/bash_completion" && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+NVM_DIR="$HOME/.nvm"
+if [ -d "$NVM_DIR" ]; then
+    export NVM_DIR
+    test -s "$NVM_DIR/nvm.sh" && \. "$NVM_DIR/nvm.sh"
+    test -s "$NVM_DIR/bash_completion" && \. "$NVM_DIR/bash_completion"
+fi
 
 # rust
 test -s "$HOME/.cargo/env" && \. "$HOME/.cargo/env"
 
 # gcloud
-export GOOGLE_APPLICATION_CREDENTIALS="$HOME/.config/gcloud/ak1ra-lab-api-user.json"
+if [ -d "$HOME/.config/gcloud" ]; then
+    export GOOGLE_APPLICATION_CREDENTIALS="$HOME/.config/gcloud/ak1ra-lab-api-user.json"
+fi
+
+# ~/bashrc.d definitions
+if [ -d ~/.bashrc.d ]; then
+    for f in $(find ~/.bashrc.d -name '*.bashrc'); do source $f; done
+fi

@@ -17,4 +17,3 @@ alias a="ansible"
 alias ap="ansible-playbook"
 alias apc="ansible-playbook -v --check"
 alias adoc="ansible-doc"
-
