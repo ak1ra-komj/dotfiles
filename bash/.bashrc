@@ -114,7 +114,7 @@ fi
 # this, if it's already enabled in /etc/bash.bashrc and /etc/profile
 # sources /etc/bash.bashrc).
 if [ "$OS_RELEASE_ID" == "freebsd" ]; then
-    if [ -n "$PS1" && -f /usr/local/share/bash-completion/bash_completion.sh ]; then
+    if [ -n "$PS1" -a -f /usr/local/share/bash-completion/bash_completion.sh ]; then
         source /usr/local/share/bash-completion/bash_completion.sh
     fi
 fi
