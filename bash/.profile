@@ -27,5 +27,4 @@ if [ -d "$HOME/.local/bin" ] ; then
 fi
 
 # rust
-. "$HOME/.cargo/env"
-
+test -s "$HOME/.cargo/env" && \. "$HOME/.cargo/env"

@@ -123,11 +123,11 @@ export GOPROXY=https://goproxy.cn,direct
 # nvm
 # curl https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh > nvm.sh
 export NVM_DIR="$HOME/.nvm"
-[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
-[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+test -s "$NVM_DIR/nvm.sh" && \. "$NVM_DIR/nvm.sh"  # This loads nvm
+test -s "$NVM_DIR/bash_completion" && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
 
 # rust
-. "$HOME/.cargo/env"
+test -s "$HOME/.cargo/env" && \. "$HOME/.cargo/env"
 
 # gcloud
 export GOOGLE_APPLICATION_CREDENTIALS="$HOME/.config/gcloud/ak1ra-lab-api-user.json"
