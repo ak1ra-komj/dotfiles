@@ -29,13 +29,6 @@ map Q gq
 " so that you can undo CTRL-U after inserting a line break.
 inoremap <C-U> <C-G>u<C-U>
 
-" Set Auto Indent and Tab Width
-set autoindent
-set tabstop=8
-set softtabstop=4
-set shiftwidth=4
-set noexpandtab
-
 " Set colorscheme
 " Builtin colorscheme can be one of below:
 "  blue, darkblue, default, delek
@@ -48,3 +41,16 @@ colorscheme elflord
 " Some key binds
 inoremap jk <esc>
 
+" configure expanding of tabs for various file types
+autocmd BufRead,BufNewFile *.py set expandtab
+autocmd BufRead,BufNewFile *.c set expandtab
+autocmd BufRead,BufNewFile *.h set expandtab
+autocmd BufRead,BufNewFile Makefile* set noexpandtab
+
+" configure editor with tabs and nice stuff...
+set expandtab           " enter spaces when tab is pressed
+set textwidth=120       " break lines when line length increases
+set tabstop=4           " use 4 spaces to represent tab
+set softtabstop=4
+set shiftwidth=4        " number of spaces to use for auto indent
+set autoindent          " copy indent from current line when starting a new line

@@ -2,3 +2,4 @@
 bash/.bashrc.d/http_proxy
 bash/.bashrc.d/jumpserver.bashrc
 
+.venv/
