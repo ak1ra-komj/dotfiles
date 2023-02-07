@@ -1,4 +1,3 @@
--- https://github.com/citrus-lemon/mpv-export-clip/blob/86a05bb7f661839f66f71a490a9cc83a0f88f42d/export_clip.lua
 utils = require "mp.utils"
 
 -- test available filename
@@ -44,9 +43,9 @@ function export_loop_clip()
             "-i", path,
             "-t", tostring(b-a),
             "-c:v", "libx264",
-            "-b:v", "3000k",
-            -- "-crf", "21",
-            -- "-preset:v", "placebo",
+            -- "-b:v", "3000k",
+            "-crf", "21",
+            "-preset:v", "placebo",
             "-pix_fmt", "yuva420p",
             "-filter_complex", "scale=iw*min(1\\,min(1280/iw\\,720/ih)):-2",
             "-an", "-sn",

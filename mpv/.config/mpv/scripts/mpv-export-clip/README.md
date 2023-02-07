@@ -6,7 +6,7 @@ a mpv lua script to cut clips from video
 
 ```sh
 mkdir -p ~/.config/mpv/scripts
-wget https://raw.githubusercontent.com/WindProphet/mpv-export-clip/master/export_clip.lua -O ~/.config/mpv/scripts/export_clip.lua
+wget https://raw.githubusercontent.com/citrus-lemon/mpv-export-clip/master/export_clip.lua -O ~/.config/mpv/scripts/export_clip.lua
 ```
 
 and register function
@@ -14,14 +14,16 @@ and register function
 add this to `~/.config/mpv/input.conf`
 
 ```
-Ctrl+2 script-message export-loop-clip
-a script-message seek-ab-loop-a
-b script-message seek-ab-loop-b
-Ctrl+a script-message set-ab-loop-a
-Ctrl+b script-message set-ab-loop-b
+# mpv-export-clip/export_clip.lua
+a          script-message set-ab-loop-a
+b          script-message set-ab-loop-b
+Ctrl+a     script-message seek-ab-loop-a
+Ctrl+b     script-message seek-ab-loop-b
+e          script-message export-loop-clip
+
 # add following for moving pointer faster
-Alt+RIGHT frame-step
-Alt+LEFT frame-back-step
+Alt+RIGHT  frame-step
+Alt+LEFT   frame-back-step
 ```
 
 clip will be saved in `screenshot-directory` folder
