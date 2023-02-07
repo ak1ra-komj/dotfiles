@@ -83,7 +83,7 @@ if [ "$OS_RELEASE_ID" == "freebsd" ]; then
     alias ls='ls -G --color=auto'
 fi
 if [ -x /usr/bin/dircolors ]; then
-    test -r ~/.dircolors && eval "$(dircolors -b ~/.dircolors)" || eval "$(dircolors -b)"
+    test -r $HOME/.dircolors && eval "$(dircolors -b $HOME/.dircolors)" || eval "$(dircolors -b)"
     alias ls='ls --color=auto'
     alias dir='dir --color=auto'
     alias vdir='vdir --color=auto'
@@ -103,11 +103,11 @@ alias l='ls -CF'
 
 # Alias definitions.
 # You may want to put all your additions into a separate file like
-# ~/.bash_aliases, instead of adding them here directly.
+# $HOME/.bash_aliases, instead of adding them here directly.
 # See /usr/share/doc/bash-doc/examples in the bash-doc package.
 
-if [ -f ~/.bash_aliases ]; then
-    . ~/.bash_aliases
+if [ -f $HOME/.bash_aliases ]; then
+    \. $HOME/.bash_aliases
 fi
 
 # enable programmable completion features (you don't need to enable
@@ -127,9 +127,13 @@ if ! shopt -oq posix; then
 fi
 
 ## Custom settings
+
+# user defined bash functions
+test -f $HOME/.bash_functions && \. $HOME/.bash_functions
+
 # http_proxy / https_proxy environments
-# 手动 touch ~/.http_proxy 文件作为 http_proxy 环境变量的开关
-if [ -f ~/.http_proxy ]; then
+# 手动 touch $HOME/.http_proxy 文件作为 http_proxy 环境变量的开关
+if [ -f $HOME/.http_proxy ]; then
     if uname -r | grep -qE '[Mm]icrosoft'; then
         # wsl_host="$(awk '/^nameserver/ {print $2}' /etc/resolv.conf | head -n1)"
         wsl_host="$(ip route show default | awk '{print $3}')"
@@ -178,9 +182,4 @@ test -s "$HOME/.cargo/env" && \. "$HOME/.cargo/env"
 # gcloud
 if [ -d "$HOME/.config/gcloud" ]; then
     export GOOGLE_APPLICATION_CREDENTIALS="$HOME/.config/gcloud/ak1ra-lab-api-user.json"
-fi
-
-# ~/bashrc.d definitions
-if [ -d ~/.bashrc.d ]; then
-    for f in $(find ~/.bashrc.d -name '*.bashrc'); do source $f; done
 fi
