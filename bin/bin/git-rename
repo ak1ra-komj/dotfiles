@@ -6,7 +6,7 @@
 # ref: https://developer.github.com/v3/users/
 
 function usage() {
-    cat << EOF
+    cat <<EOF
 
 Usage:
     "$0" <old-committer-email> [old-author-email]
@@ -41,4 +41,3 @@ export NEW_GIT_AUTHOR_NAME="$NEW_GIT_COMMITTER_NAME"
 export NEW_GIT_AUTHOR_EMAIL="$NEW_GIT_COMMITTER_EMAIL"
 
 git_rename
-
