@@ -2,6 +2,11 @@
 # ffprobe -v quiet -print_format json -show_streams input.mkv
 # ffmpeg ... -map input_file_index:stream_type_specifier:stream_index
 
+hash ffmpeg 2>/dev/null || {
+    echo >&2 "Required command 'ffmpeg' is not installed. Aborting."
+    exit 1
+}
+
 function extract_streams() {
     local input="$1"
     local codec_type="$2"

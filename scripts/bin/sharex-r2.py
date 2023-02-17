@@ -10,6 +10,7 @@ import pathlib
 import aiofile
 import httpx
 
+
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("-c", "--config",
@@ -19,6 +20,7 @@ def parse_args():
     parser.add_argument("-d", "--delete",
                         metavar="URL", nargs="+", help="image urls to delete")
     return parser.parse_args()
+
 
 async def main():
     args = parse_args()
@@ -54,6 +56,7 @@ async def main():
         headers.pop("content-type")
         for url in delete_urls:
             await client.delete(url, headers=headers)
+
 
 if __name__ == "__main__":
     asyncio.run(main())

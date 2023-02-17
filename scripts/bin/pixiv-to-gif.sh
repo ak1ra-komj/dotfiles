@@ -1,5 +1,20 @@
 #! /bin/bash
 
+hash ffmpeg 2>/dev/null || {
+    echo >&2 "Required command 'ffmpeg' is not installed. Aborting."
+    exit 1
+}
+
+hash unzip 2>/dev/null || {
+    echo >&2 "Required command 'unzip' is not installed. Aborting."
+    exit 1
+}
+
+hash parallel 2>/dev/null || {
+    echo >&2 "Required command 'parallel' is not installed. Aborting."
+    exit 1
+}
+
 function pixiv2gif() {
     local infile="$1"
     local outfile_format="$2"
