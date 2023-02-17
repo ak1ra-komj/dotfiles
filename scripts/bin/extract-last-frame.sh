@@ -4,10 +4,15 @@
 # select last frame, ref: https://superuser.com/a/1448673
 # ffmpeg -sseof -3 -i input.mp4 -update 1 -q:v 1 last.png
 
-hash ffmpeg 2>/dev/null || {
-    echo >&2 "Required command 'ffmpeg' is not installed. Aborting."
-    exit 1
+function check_exec() {
+    for exe in $@; do
+        hash "$exe" 2>/dev/null || {
+            echo >&2 "Required command '$exe' is not installed. Aborting."
+            exit 1
+        }
+    done
 }
+check_exec ffmpeg
 
 function extract_last_frame() {
     local input="$1"

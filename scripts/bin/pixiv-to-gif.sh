@@ -1,19 +1,14 @@
 #! /bin/bash
 
-hash ffmpeg 2>/dev/null || {
-    echo >&2 "Required command 'ffmpeg' is not installed. Aborting."
-    exit 1
+function check_exec() {
+    for exe in $@; do
+        hash "$exe" 2>/dev/null || {
+            echo >&2 "Required command '$exe' is not installed. Aborting."
+            exit 1
+        }
+    done
 }
-
-hash unzip 2>/dev/null || {
-    echo >&2 "Required command 'unzip' is not installed. Aborting."
-    exit 1
-}
-
-hash parallel 2>/dev/null || {
-    echo >&2 "Required command 'parallel' is not installed. Aborting."
-    exit 1
-}
+check_exec ffmpeg unzip parallel
 
 function pixiv2gif() {
     local infile="$1"
