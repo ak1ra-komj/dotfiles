@@ -32,7 +32,7 @@ function extract_streams() {
 }
 
 function usage() {
-    cat << _EOF
+    cat <<_EOF
 Usage:
     extract-streams.sh [--dry-run] [--input-glob <input_glob>] [--codec-type <codec_type>]
 
@@ -62,12 +62,30 @@ fi
 eval set -- "$getopt_args"
 while true; do
     case "$1" in
-        -h | --help) usage; shift;;
-        -d | --dry-run) dry_run=true; shift;;
-        -i | --input-glob) input_glob="$2"; shift 2;;
-        -c | --codec-type) codec_type="$2"; shift 2;;
-        --) shift; break;;
-        *) echo "unexpected option: $1 - this should not happen."; usage;;
+    -h | --help)
+        usage
+        shift
+        ;;
+    -d | --dry-run)
+        dry_run=true
+        shift
+        ;;
+    -i | --input-glob)
+        input_glob="$2"
+        shift 2
+        ;;
+    -c | --codec-type)
+        codec_type="$2"
+        shift 2
+        ;;
+    --)
+        shift
+        break
+        ;;
+    *)
+        echo "unexpected option: $1 - this should not happen."
+        usage
+        ;;
     esac
 done
 
