@@ -4,8 +4,8 @@
 
 # If not running interactively, don't do anything
 case $- in
-    *i*) ;;
-    *) return ;;
+*i*) ;;
+*) return ;;
 esac
 
 # don't put duplicate lines or lines starting with space in the history.
@@ -44,7 +44,7 @@ fi
 
 # set a fancy prompt (non-color, unless we know we "want" color)
 case "$TERM" in
-    xterm-color | *-256color) color_prompt=yes ;;
+xterm-color | *-256color) color_prompt=yes ;;
 esac
 
 # uncomment for a colored prompt, if the terminal has the capability; turned
@@ -72,10 +72,10 @@ unset color_prompt force_color_prompt
 
 # If this is an xterm set the title to user@host:dir
 case "$TERM" in
-    xterm* | rxvt*)
-        PS1="\[\e]0;${debian_chroot:+($debian_chroot)}\u@\h: \w\a\]$PS1"
-        ;;
-    *) ;;
+xterm* | rxvt*)
+    PS1="\[\e]0;${debian_chroot:+($debian_chroot)}\u@\h: \w\a\]$PS1"
+    ;;
+*) ;;
 esac
 
 # enable color support of ls and also add handy aliases
@@ -101,15 +101,6 @@ alias ll='ls -l'
 alias la='ls -A'
 alias l='ls -CF'
 
-# Alias definitions.
-# You may want to put all your additions into a separate file like
-# $HOME/.bash_aliases, instead of adding them here directly.
-# See /usr/share/doc/bash-doc/examples in the bash-doc package.
-
-if [ -f $HOME/.bash_aliases ]; then
-    \. $HOME/.bash_aliases
-fi
-
 # enable programmable completion features (you don't need to enable
 # this, if it's already enabled in /etc/bash.bashrc and /etc/profile
 # sources /etc/bash.bashrc).
@@ -126,34 +117,29 @@ if ! shopt -oq posix; then
     fi
 fi
 
-## Custom settings
+# Alias definitions.
+# You may want to put all your additions into a separate file like
+# $HOME/.bash_aliases, instead of adding them here directly.
+# See /usr/share/doc/bash-doc/examples in the bash-doc package.
+test -f $HOME/.bash_aliases && \. $HOME/.bash_aliases
 
-# user defined bash functions
+# Custom settings
 test -f $HOME/.bash_functions && \. $HOME/.bash_functions
 
-# http_proxy / https_proxy environments
+# http_proxy / https_proxy
 # 手动 touch $HOME/.http_proxy 文件作为 http_proxy 环境变量的开关
 if [ -f $HOME/.http_proxy ]; then
-    if uname -r | grep -qE '[Mm]icrosoft'; then
-        # wsl_host="$(awk '/^nameserver/ {print $2}' /etc/resolv.conf | head -n1)"
-        wsl_host="$(ip route show default | awk '{print $3}')"
-        export http_proxy="http://$wsl_host:1082"
-        export https_proxy="$http_proxy"
-    else
-        export http_proxy="http://127.0.0.1:1082"
-        export https_proxy="$http_proxy"
-    fi
-    export no_proxy="localhost,127.0.0.1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
-    alias noproxy="unset http_proxy https_proxy no_proxy"
+    proxy_host=$(awk -F= '/^proxy_host=/ {print $2}' $HOME/.http_proxy | tr 'A-Z' 'a-z')
+    proxy_port=$(awk -F= '/^proxy_port=/ {print $2}' $HOME/.http_proxy | tr 'A-Z' 'a-z')
 
-    if [ -d /etc/apt ]; then
-        # 需手动添加软链接, 为实现为 WSL 2 中的 apt 设置 HTTP::Proxy
-        # ln -s /tmp/apt.conf.d-02proxy /etc/apt/apt.conf.d/02proxy
-        cat > /tmp/apt.conf.d-02proxy <<EOF
-Acquire::HTTP::Proxy "$http_proxy";
-Acquire::HTTPS::Proxy "$http_proxy";
-EOF
+    if [ "$proxy_host" == "wsl" ]; then
+        # proxy_host="$(awk '/^nameserver/ {print $2}' /etc/resolv.conf | head -n1)"
+        proxy_host="$(ip route show default | awk '{print $3}')"
     fi
+    export http_proxy="http://$proxy_host:$proxy_port"
+    export https_proxy="http://$proxy_host:$proxy_port"
+    export no_proxy="localhost,127.0.0.1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
+    alias no-proxy="unset http_proxy https_proxy no_proxy"
 fi
 
 # python3 -m pip install --user
@@ -179,7 +165,5 @@ fi
 # rust
 test -s "$HOME/.cargo/env" && \. "$HOME/.cargo/env"
 
-# gcloud
-if [ -d "$HOME/.config/gcloud" ]; then
-    export GOOGLE_APPLICATION_CREDENTIALS="$HOME/.config/gcloud/ak1ra-lab-api-user.json"
-fi
+# aws-cli
+hash aws && complete -C aws_completer aws
