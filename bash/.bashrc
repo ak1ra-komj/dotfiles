@@ -127,19 +127,23 @@ test -f $HOME/.bash_aliases && \. $HOME/.bash_aliases
 test -f $HOME/.bash_functions && \. $HOME/.bash_functions
 
 # http_proxy / https_proxy
-# 手动 touch $HOME/.http_proxy 文件作为 http_proxy 环境变量的开关
+# 在文件 $HOME/.http_proxy 中填入 http_proxy 相关的信息
 if [ -f $HOME/.http_proxy ]; then
-    proxy_host=$(awk -F= '/^proxy_host=/ {print $2}' $HOME/.http_proxy | tr 'A-Z' 'a-z')
-    proxy_port=$(awk -F= '/^proxy_port=/ {print $2}' $HOME/.http_proxy | tr 'A-Z' 'a-z')
-
+    proxy_host=$(awk -F= '/^host=/ {print $2}' $HOME/.http_proxy | tr 'A-Z' 'a-z')
     if [ "$proxy_host" == "wsl" ]; then
         # proxy_host="$(awk '/^nameserver/ {print $2}' /etc/resolv.conf | head -n1)"
         proxy_host="$(ip route show default | awk '{print $3}')"
     fi
+
+    proxy_port=$(awk -F= '/^port=/ {print $2}' $HOME/.http_proxy | tr 'A-Z' 'a-z')
     export http_proxy="http://$proxy_host:$proxy_port"
     export https_proxy="http://$proxy_host:$proxy_port"
-    export no_proxy="localhost,127.0.0.1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
-    alias no-proxy="unset http_proxy https_proxy no_proxy"
+
+    no_proxy=$(awk -F= '/^no_proxy=/ {print $2}' $HOME/.http_proxy | tr 'A-Z' 'a-z')
+    test -n "$no_proxy" || \
+        no_proxy="localhost,127.0.0.0/8,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
+    export no_proxy
+    alias noproxy="unset http_proxy https_proxy no_proxy"
 fi
 
 # python3 -m pip install --user
