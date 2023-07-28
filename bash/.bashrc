@@ -170,4 +170,4 @@ fi
 test -s "$HOME/.cargo/env" && \. "$HOME/.cargo/env"
 
 # aws-cli
-hash aws 2>&1 >/dev/null && complete -C aws_completer aws
+hash aws 2>/dev/null && complete -C aws_completer aws
