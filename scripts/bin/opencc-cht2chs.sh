@@ -3,15 +3,10 @@
 # date: 2023-02-17
 # convert cht text file (subtitles) to chs using opencc
 
-function check_exec() {
-    for exe in $@; do
-        hash "$exe" 2>/dev/null || {
-            echo >&2 "Required command '$exe' is not installed. Aborting."
-            exit 1
-        }
-    done
-}
-check_exec parallel encguess iconv opencc
+if [ -f $HOME/.bash_functions ]; then
+    source $HOME/.bash_functions
+    check_command parallel encguess iconv opencc
+fi
 
 function opencc_cht2chs() {
     local infile="$1"

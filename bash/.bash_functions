@@ -25,10 +25,10 @@ function gen_list {
     fi
 }
 
-function check_exec() {
-    for exe in $@; do
-        hash "$exe" 2>/dev/null || {
-            echo >&2 "Required command '$exe' is not installed. Aborting."
+function check_command() {
+    for command in $@; do
+        hash "$command" 2>/dev/null || {
+            echo >&2 "Required command '$command' is not installed, Aborting..."
             exit 1
         }
     done

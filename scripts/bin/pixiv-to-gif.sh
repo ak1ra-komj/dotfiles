@@ -1,14 +1,9 @@
 #! /bin/bash
 
-function check_exec() {
-    for exe in $@; do
-        hash "$exe" 2>/dev/null || {
-            echo >&2 "Required command '$exe' is not installed. Aborting."
-            exit 1
-        }
-    done
-}
-check_exec ffmpeg unzip parallel
+if [ -f $HOME/.bash_functions ]; then
+    source $HOME/.bash_functions
+    check_command ffmpeg unzip parallel
+fi
 
 function pixiv2gif() {
     local infile="$1"
