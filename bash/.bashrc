@@ -83,7 +83,7 @@ if [ "$OS_RELEASE_ID" == "freebsd" ]; then
     alias ls='ls -G --color=auto'
 fi
 if [ -x /usr/bin/dircolors ]; then
-    test -r $HOME/.dircolors && eval "$(dircolors -b $HOME/.dircolors)" || eval "$(dircolors -b)"
+    test -r ~/.dircolors && eval "$(dircolors -b ~/.dircolors)" || eval "$(dircolors -b)"
     alias ls='ls --color=auto'
     alias dir='dir --color=auto'
     alias vdir='vdir --color=auto'
@@ -101,6 +101,15 @@ alias ll='ls -l'
 alias la='ls -A'
 alias l='ls -CF'
 
+# Alias definitions.
+# You may want to put all your additions into a separate file like
+# ~/.bash_aliases, instead of adding them here directly.
+# See /usr/share/doc/bash-doc/examples in the bash-doc package.
+
+if [ -f ~/.bash_aliases ]; then
+    . ~/.bash_aliases
+fi
+
 # enable programmable completion features (you don't need to enable
 # this, if it's already enabled in /etc/bash.bashrc and /etc/profile
 # sources /etc/bash.bashrc).
@@ -117,42 +126,25 @@ if ! shopt -oq posix; then
     fi
 fi
 
-# Alias definitions.
-# You may want to put all your additions into a separate file like
-# $HOME/.bash_aliases, instead of adding them here directly.
-# See /usr/share/doc/bash-doc/examples in the bash-doc package.
-test -f $HOME/.bash_aliases && \. $HOME/.bash_aliases
+# ensure local PATH
+export PATH=~/bin:~/.local/bin:$PATH
 
-# Custom settings
-test -f $HOME/.bash_functions && \. $HOME/.bash_functions
+# custom bash functions
+test -f ~/.bash_functions && source ~/.bash_functions
 
-# http_proxy / https_proxy
-# 在文件 $HOME/.http_proxy 中填入 http_proxy 相关的信息
-if [ -f $HOME/.http_proxy ]; then
-    proxy_host=$(awk -F= '/^host=/ {print $2}' $HOME/.http_proxy | tr 'A-Z' 'a-z')
-    if [ "$proxy_host" == "wsl" ]; then
-        # proxy_host="$(awk '/^nameserver/ {print $2}' /etc/resolv.conf | head -n1)"
-        proxy_host="$(ip route show default | awk '{print $3}')"
-    fi
+# custom http_proxy / https_proxy
+test -f ~/.http_proxy.json && source ~/.http_proxy.sh
 
-    proxy_port=$(awk -F= '/^port=/ {print $2}' $HOME/.http_proxy | tr 'A-Z' 'a-z')
-    export http_proxy="http://$proxy_host:$proxy_port"
-    export https_proxy="http://$proxy_host:$proxy_port"
+# Kubernetes
+source_bash_completion kubectl kubeadm helm
 
-    no_proxy=$(awk -F= '/^no_proxy=/ {print $2}' $HOME/.http_proxy | tr 'A-Z' 'a-z')
-    test -n "$no_proxy" || \
-        no_proxy="localhost,127.0.0.0/8,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
-    export no_proxy
-    alias noproxy="unset http_proxy https_proxy no_proxy"
-fi
-
-# python3 -m pip install --user
-export PATH=$HOME/bin:$HOME/.local/bin:$PATH
-# python3 pipx
+# python3 pipx: apt install pipx
 hash register-python-argcomplete 2>/dev/null && eval "$(register-python-argcomplete pipx)"
+# python3 poetry: pipx install poetry
+hash poetry 2>/dev/null && source <(poetry completions bash)
 
 # golang
-GOPATH=$HOME/.go
+GOPATH=~/.go
 if [ -d "$GOPATH" ]; then
     export GOPATH
     export PATH=$GOPATH/bin:/usr/local/go/bin:$PATH
@@ -161,15 +153,15 @@ fi
 
 # nvm
 # curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.5/install.sh > nvm.sh
-NVM_DIR="$HOME/.nvm"
+NVM_DIR=~/.nvm
 if [ -d "$NVM_DIR" ]; then
     export NVM_DIR
-    test -s "$NVM_DIR/nvm.sh" && \. "$NVM_DIR/nvm.sh"
-    test -s "$NVM_DIR/bash_completion" && \. "$NVM_DIR/bash_completion"
+    test -s "$NVM_DIR/nvm.sh" && source "$NVM_DIR/nvm.sh"
+    test -s "$NVM_DIR/bash_completion" && source "$NVM_DIR/bash_completion"
 fi
 
 # rust
-test -s "$HOME/.cargo/env" && \. "$HOME/.cargo/env"
+test -s ~/.cargo/env && source ~/.cargo/env
 
 # aws-cli
 hash aws 2>/dev/null && complete -C aws_completer aws

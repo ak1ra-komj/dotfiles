@@ -33,3 +33,11 @@ function check_command() {
         }
     done
 }
+
+function source_bash_completion() {
+    for command in $@; do
+        hash "$command" 2>/dev/null && {
+            source <($command completion bash)
+        }
+    done
+}
