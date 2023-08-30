@@ -148,6 +148,8 @@ fi
 
 # python3 -m pip install --user
 export PATH=$HOME/bin:$HOME/.local/bin:$PATH
+# python3 pipx
+hash register-python-argcomplete 2>/dev/null && eval "$(register-python-argcomplete pipx)"
 
 # golang
 GOPATH=$HOME/.go
@@ -158,7 +160,7 @@ if [ -d "$GOPATH" ]; then
 fi
 
 # nvm
-# curl https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh > nvm.sh
+# curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.5/install.sh > nvm.sh
 NVM_DIR="$HOME/.nvm"
 if [ -d "$NVM_DIR" ]; then
     export NVM_DIR
