@@ -135,13 +135,11 @@ test -f ~/.bash_functions && source ~/.bash_functions
 # custom http_proxy / https_proxy
 test -f ~/.http_proxy.json && source ~/.http_proxy.sh
 
-# Kubernetes
-source_bash_completion kubectl kubeadm helm
-
-# python3 pipx: apt install pipx
-hash register-python-argcomplete 2>/dev/null && eval "$(register-python-argcomplete pipx)"
-# python3 poetry: pipx install poetry
-hash poetry 2>/dev/null && source <(poetry completions bash)
+# python3
+# apt install pipx, pipx depends python3-argcomplete
+hash pipx 2>/dev/null && eval "$(register-python-argcomplete pipx)"
+# pipx install poetry
+# poetry completions bash | sudo /etc/bash_completion.d/poetry
 
 # golang
 GOPATH=~/.go
