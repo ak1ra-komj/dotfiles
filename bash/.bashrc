@@ -145,8 +145,9 @@ hash pipx 2>/dev/null && eval "$(register-python-argcomplete pipx)"
 GOPATH=~/.go
 if [ -d "$GOPATH" ]; then
     export GOPATH
-    export PATH=$GOPATH/bin:/usr/local/go/bin:$PATH
-    export GOPROXY=https://goproxy.cn,direct
+    export GOROOT=~/.local/go
+    export PATH=$GOPATH/bin:$GOROOT/bin:$PATH
+    #export GOPROXY=https://goproxy.cn,direct
 fi
 
 # nvm
