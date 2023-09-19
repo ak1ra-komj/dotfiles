@@ -6,36 +6,6 @@ https://github.com/client9/shlib/blob/master/LICENSE.md
 but credit (and pull requests) appreciated.
 ------------------------------------------------------------------------
 EOF
-assertTrue() {
-  if eval "$1"; then
-    echo "assertTrue failed: $2"
-    exit 2
-  fi
-}
-assertFalse() {
-  if eval "$1"; then
-    echo "assertFalse failed: $2"
-    exit 2
-  fi
-}
-assertEquals() {
-  want=$1
-  got=$2
-  msg=$3
-  if [ "$want" != "$got" ]; then
-    echo "assertEquals failed: want='$want' got='$got' $msg"
-    exit 2
-  fi
-}
-assertNotEquals() {
-  want=$1
-  got=$2
-  msg=$3
-  if [ "$want" = "$got" ]; then
-    echo "assertNotEquals failed: want='$want' got='$got' $msg"
-    exit 2
-  fi
-}
 date_iso8601() {
   date -u +%Y-%m-%dT%H:%M:%S+0000
 }
@@ -119,6 +89,44 @@ hash_sha256_verify() {
   got=$(hash_sha256 "$TARGET")
   if [ "$want" != "$got" ]; then
     log_err "hash_sha256_verify checksum for '$TARGET' did not verify ${want} vs $got"
+    return 1
+  fi
+}
+hash_sha512() {
+  TARGET=${1:-/dev/stdin}
+  if is_command gsha512sum; then
+    hash=$(gsha512sum "$TARGET") || return 1
+    echo "$hash" | cut -d ' ' -f 1
+  elif is_command sha512sum; then
+    hash=$(sha512sum "$TARGET") || return 1
+    echo "$hash" | cut -d ' ' -f 1
+  elif is_command shasum; then
+    hash=$(shasum -a 512 "$TARGET" 2>/dev/null) || return 1
+    echo "$hash" | cut -d ' ' -f 1
+  elif is_command openssl; then
+    hash=$(openssl -dst openssl dgst -sha512 "$TARGET") || return 1
+    echo "$hash" | cut -d ' ' -f a
+  else
+    log_crit "hash_sha512 unable to find command to compute sha-512 hash"
+    return 1
+  fi
+}
+hash_sha512_verify() {
+  TARGET=$1
+  checksums=$2
+  if [ -z "$checksums" ]; then
+    log_err "hash_sha512_verify checksum file not specified in arg2"
+    return 1
+  fi
+  BASENAME=${TARGET##*/}
+  want=$(grep "${BASENAME}" "${checksums}" 2>/dev/null | tr '\t' ' ' | cut -d ' ' -f 1)
+  if [ -z "$want" ]; then
+    log_err "hash_sha512_verify unable to find checksum for '${TARGET}' in '${checksums}'"
+    return 1
+  fi
+  got=$(hash_sha512 "$TARGET")
+  if [ "$want" != "$got" ]; then
+    log_err "hash_sha512_verify checksum for '$TARGET' did not verify ${want} vs $got"
     return 1
   fi
 }
@@ -221,6 +229,20 @@ mktmpdir() {
   mkdir -p "${TMPDIR}"
   echo "${TMPDIR}"
 }
+uname_arch() {
+  arch=$(uname -m)
+  case $arch in
+    x86_64) arch="amd64" ;;
+    x86) arch="386" ;;
+    i686) arch="386" ;;
+    i386) arch="386" ;;
+    aarch64) arch="arm64" ;;
+    armv5*) arch="armv5" ;;
+    armv6*) arch="armv6" ;;
+    armv7*) arch="armv7" ;;
+  esac
+  echo ${arch}
+}
 uname_arch_check() {
   arch=$(uname_arch)
   case "$arch" in
@@ -242,19 +264,14 @@ uname_arch_check() {
   log_crit "uname_arch_check '$(uname -m)' got converted to '$arch' which is not a GOARCH value.  Please file bug report at https://github.com/client9/shlib"
   return 1
 }
-uname_arch() {
-  arch=$(uname -m)
-  case $arch in
-    x86_64) arch="amd64" ;;
-    x86) arch="386" ;;
-    i686) arch="386" ;;
-    i386) arch="386" ;;
-    aarch64) arch="arm64" ;;
-    armv5*) arch="armv5" ;;
-    armv6*) arch="armv6" ;;
-    armv7*) arch="armv7" ;;
+uname_os() {
+  os=$(uname -s | tr '[:upper:]' '[:lower:]')
+  case "$os" in
+    msys*) os="windows" ;;
+    mingw*) os="windows" ;;
+    cygwin*) os="windows" ;;
   esac
-  echo ${arch}
+  echo "$os"
 }
 uname_os_check() {
   os=$(uname_os)
@@ -273,15 +290,6 @@ uname_os_check() {
   esac
   log_crit "uname_os_check '$(uname -s)' got converted to '$os' which is not a GOOS value. Please file bug at https://github.com/client9/shlib"
   return 1
-}
-uname_os() {
-  os=$(uname -s | tr '[:upper:]' '[:lower:]')
-  case "$os" in
-    msys*) os="windows" ;;
-    mingw*) os="windows" ;;
-    cygwin*) os="windows" ;;
-  esac
-  echo "$os"
 }
 untar() {
   tarball=$1
