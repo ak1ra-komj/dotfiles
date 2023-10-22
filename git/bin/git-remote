@@ -1,18 +1,19 @@
-#! /bin/bash
+#!/bin/bash
 
-if [ -f $HOME/.bash_functions ]; then
-    source $HOME/.bash_functions
-    check_command parallel git
-fi
+git_remote() {
+    shlib="$(readlink -f ~/bin/shlib.sh)"
+    test -f "$shlib" || return
+    # shellcheck source=/dev/null
+    . "$shlib"
 
-function git_remote() {
-    local repo="${1%.git}"
-    pushd "$repo"
-    git remote -v | head -1
-    popd 2>&1 >/dev/null
+    require_command git parallel
+
+    repo_dir="$(dirname "$(realpath -s "$1")")"
+    cd "$repo_dir" || return
+    git remote -v | head -n1
+    cd - >/dev/null 2>&1 || return
 }
 
 export -f git_remote
-
 find . -type d -name '.git' -print0 |
     parallel -0 git_remote "{}"

@@ -3,7 +3,7 @@
 # ffmpeg ... -map input_file_index:stream_type_specifier:stream_index
 
 usage() {
-    this=$(readlink -f "$0")
+    this="$(readlink -f "$0")"
 
     cat <<_EOF
 Usage:

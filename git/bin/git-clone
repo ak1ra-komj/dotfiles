@@ -1,26 +1,32 @@
-#! /bin/bash
+#!/bin/sh
 
-if [ -f $HOME/.bash_functions ]; then
-    source $HOME/.bash_functions
-    check_command git
-fi
+git_clone() {
+    shlib="$(readlink -f ~/bin/shlib.sh)"
+    test -f "$shlib" || return
+    # shellcheck source=/dev/null
+    . "$shlib"
 
-repo="$1"
-code_dir="$HOME/code"
+    require_command git
 
-repo=${repo%.git}
-if echo $repo | grep -qE "^git@"; then
-    repo_dir="${code_dir}/$(echo ${repo#git@} | tr ':' '/')"
-elif echo $repo | grep -qE "^https?://"; then
-    repo_dir="${code_dir}/${repo#http?://}"
-else
-    exit 1
-fi
+    repo="$1"
+    code_dir="$HOME/code"
 
-if [ -d "$repo_dir" ]; then
-    pushd $repo_dir
-    git fetch
-    popd
-else
-    git clone $repo $repo_dir
-fi
+    repo="${repo%.git}"
+    if echo "$repo" | grep -qE "^git@"; then
+        repo_dir="${code_dir}/$(echo "${repo#git@}" | tr ':' '/')"
+    elif echo "$repo" | grep -qE "^https?://"; then
+        repo_dir="${code_dir}/${repo#http?://}"
+    else
+        return
+    fi
+
+    if [ -d "$repo_dir" ]; then
+        cd "$repo_dir" || return
+        git fetch
+        cd - || return
+    else
+        git clone "$repo" "$repo_dir"
+    fi
+}
+
+git_clone "$@"
