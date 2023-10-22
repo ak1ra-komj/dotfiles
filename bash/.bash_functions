@@ -1,43 +1,33 @@
-# custom bash function
+#!/bin/bash
+# custom shell function
 
-function sha256list {
-    local dir="$1"
-    local checksum="$(basename $dir).sha256"
+shasum_list() {
+    basedir="$1"
+    algorithm="$2"
+    # algorithm: 1, 224, 256 (default), 384, 512
+    test -n "$algorithm" || algorithm=256
+    shasum="sha${algorithm}sum"
 
-    if [ -d "$dir" ]; then
-        pushd "$dir"
+    realpath="$(realpath -s "$basedir")"
+    test -d "$realpath" && {
+        tempfile="$(mktemp)"
+        cd "$realpath" || return
+        # bookworm: dpkg -S /usr/bin/shasum -> perl ?
         find . -type f -print0 |
-            parallel -0 --max-lines=1 sha256sum "{}" | tee -a "../$checksum"
-        popd
-        LANG=C.UTF-8 sort -k2 "$checksum" >"${checksum}.sorted"
-        mv "${checksum}.sorted" "$checksum"
-    fi
+            parallel -0 --max-lines=1 "$(command -v "$shasum")" | tee -a "$tempfile"
+        cd "$(dirname "$realpath")" || return
+        LANG=C.UTF-8 sort -k2 "$tempfile" >"${realpath}.${shasum}"
+        rm -f "$tempfile"
+    }
 }
 
-function gen_list {
-    local dir="$1"
-    local list="$(basename $dir).list"
+find_list() {
+    basedir="$1"
+    realpath="$(realpath -s "$basedir")"
 
-    if [ -d "$dir" ]; then
-        pushd "$dir"
-        find . -type f | LANG=C.UTF-8 sort | tee "../$list"
-        popd
-    fi
-}
-
-function check_command() {
-    for command in $@; do
-        hash "$command" 2>/dev/null || {
-            echo >&2 "Required command '$command' is not installed, Aborting..."
-            exit 1
-        }
-    done
-}
-
-function source_bash_completion() {
-    for command in $@; do
-        hash "$command" 2>/dev/null && {
-            source <($command completion bash)
-        }
-    done
+    test -d "$realpath" && {
+        cd "$realpath" || return
+        find . -type f | LANG=C.UTF-8 sort | tee "${realpath}.list"
+        cd "$(dirname "$realpath")" || return
+    }
 }
