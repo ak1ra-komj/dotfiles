@@ -23,7 +23,7 @@ git_clone() {
     if [ -d "$repo_dir" ]; then
         cd "$repo_dir" || return
         git fetch
-        cd - || return
+        cd - >/dev/null 2>&1 || return
     else
         git clone "$repo" "$repo_dir"
     fi
