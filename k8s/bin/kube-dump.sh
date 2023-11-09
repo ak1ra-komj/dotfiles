@@ -20,6 +20,15 @@ EOF
     exit 0
 }
 
+require_command() {
+    for c in "$@"; do
+        command -v "$c" >/dev/null || {
+            echo >&2 "required command '$c' is not installed, aborting..."
+            exit 1
+        }
+    done
+}
+
 kube_dump() {
     namespace="$1"
 
@@ -61,13 +70,6 @@ kube_dump() {
 }
 
 main() {
-    shlib="$(readlink -f ~/bin/shlib.sh)"
-    test -f "$shlib" || return
-    # shellcheck source=/dev/null
-    . "$shlib"
-
-    require_command kubectl jq
-
     if [ "$#" -eq 0 ] || [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
         usage
     fi
@@ -89,5 +91,7 @@ main() {
         kube_dump "${namespace#namespace/}"
     done
 }
+
+require_command kubectl jq
 
 main "$@"

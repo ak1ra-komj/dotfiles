@@ -7,14 +7,16 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+require_command() {
+    for c in "$@"; do
+        command -v "$c" >/dev/null || {
+            echo >&2 "required command '$c' is not installed, aborting..."
+            exit 1
+        }
+    done
+}
+
 kube_convert() {
-    shlib="$(readlink -f ~/bin/shlib.sh)"
-    test -f "$shlib" || return
-    # shellcheck source=/dev/null
-    . "$shlib"
-
-    require_command kubectl kubectl-convert
-
     tempdir=$(mktemp -d /tmp/kube-dump.XXXXXX)
     find . -type f -name '*.json' -print0 | while IFS= read -r -d '' f; do
         tempf=$(mktemp "${tempdir}/kube-convert.XXXXXXXXX")
@@ -24,5 +26,7 @@ kube_convert() {
     done
     rm -rf "$tempdir"
 }
+
+require_command kubectl kubectl-convert
 
 kube_convert
