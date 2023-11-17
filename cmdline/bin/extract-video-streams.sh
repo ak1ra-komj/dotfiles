@@ -26,9 +26,9 @@ extract_video_streams() {
     codec_type="$2"
     dry_run="$3"
     # ref: https://www.starkandwayne.com/blog/bash-for-loop-over-json-array-using-jq/
-    streams_base64="$(ffprobe -v quiet -print_format json -show_streams "$infile" | jq -r -c '.streams[] | @base64')"
+    mapfile -t streams_base64 < <(ffprobe -v quiet -print_format json -show_streams "$infile" | jq -r -c '.streams[] | @base64')
     map_args=""
-    for stream_base64 in $streams_base64; do
+    for stream_base64 in "${streams_base64[@]}"; do
         stream="$(echo "$stream_base64" | base64 -d)"
         stream_codec_type="$(echo "$stream" | jq -r .codec_type)"
         if ! echo "$stream_codec_type" | grep -qE "$codec_type"; then
@@ -56,7 +56,7 @@ main() {
     # shellcheck source=/dev/null
     . "$shlib"
 
-    require_command ffmpeg
+    require_command ffmpeg ffprobe jq
 
     # default options
     dry_run=false
