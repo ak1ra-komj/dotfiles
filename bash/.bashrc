@@ -137,7 +137,7 @@ test -f ~/.http_proxy.json && source ~/.http_proxy.sh
 
 # python3
 # apt install pipx, pipx depends python3-argcomplete
-hash pipx 2>/dev/null && eval "$(register-python-argcomplete pipx)"
+command -v pipx >/dev/null && eval "$(register-python-argcomplete pipx)"
 # pipx install poetry
 # poetry completions bash | sudo /etc/bash_completion.d/poetry
 
@@ -163,4 +163,12 @@ fi
 test -s ~/.cargo/env && source ~/.cargo/env
 
 # aws-cli
-hash aws 2>/dev/null && complete -C aws_completer aws
+command -v aws >/dev/null && complete -C aws_completer aws
+
+# # ssh-agent - setup SSH_AUTH_SOCK & SSH_AGENT_PID env
+# eval $(ssh-agent)
+# ssh-add $(find ~/.ssh -type f -name '*.pem') 2>/dev/null
+
+# keychain - re-use ssh-agent and/or gpg-agent between logins
+command -v keychain >/dev/null &&
+    eval $(keychain --eval --agents ssh $(find ~/.ssh -type f -name '*.pem'))
