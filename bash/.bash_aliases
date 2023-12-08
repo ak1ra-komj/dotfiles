@@ -19,4 +19,9 @@ alias gp="git push"
 # Kubenetes
 alias k="kubectl"
 complete -o default -F __start_kubectl k
+
+alias hdd='test -f Chart.yaml && helm install --debug --dry-run -g .'
+alias kns='kubectl config get-contexts && kubectl config set-context --current --namespace'
+
 test -f ~/bin/k8s-kubeconfig-selector.sh && alias kc="source ~/bin/k8s-kubeconfig-selector.sh"
+

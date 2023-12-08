@@ -165,10 +165,13 @@ test -s ~/.cargo/env && source ~/.cargo/env
 # aws-cli
 command -v aws >/dev/null && complete -C aws_completer aws
 
+# tccli
+command -v tccli >/dev/null && complete -C tccli_completer tccli
+
 # # ssh-agent - setup SSH_AUTH_SOCK & SSH_AGENT_PID env
 # eval $(ssh-agent)
 # ssh-add $(find ~/.ssh -type f -name '*.pem') 2>/dev/null
 
 # keychain - re-use ssh-agent and/or gpg-agent between logins
 command -v keychain >/dev/null &&
-    eval $(keychain --eval --agents ssh $(find ~/.ssh -type f -name '*.pem'))
+    eval $(keychain --eval --agents ssh $(find ~/.ssh/ssh-agent -type f ! -name '*.pub'))
