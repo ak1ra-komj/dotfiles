@@ -10,8 +10,8 @@ debx() {
             cd "${realpath%.deb}" || return
             ar x "$realpath"
             mkdir control data
-            tar -xf control.tar.xz -C control
-            tar -xf data.tar.xz -C data
+            tar -xf control.tar.* -C control
+            tar -xf data.tar.* -C data
             cd "$(dirname "$realpath")" || return
         }
     done
