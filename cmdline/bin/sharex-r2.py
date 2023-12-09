@@ -7,7 +7,7 @@ import json
 import mimetypes
 import pathlib
 
-import aiofile
+import aiofiles
 import httpx
 
 
@@ -44,13 +44,13 @@ async def main():
             file = pathlib.Path(file).expanduser()
             headers.update({"content-type": mimetypes.guess_type(file)[0]})
 
-            async with aiofile.async_open(file, "rb") as f:
+            async with aiofiles.open(file, "rb") as f:
                 content = await f.read()
             resp = await client.post(
                 endpoint + f"?filename={file.name}", content=content, headers=headers
             )
 
-            async with aiofile.async_open(uploads_txt, 'a') as f:
+            async with aiofiles.open(uploads_txt, 'a') as f:
                 await f.write(json.dumps(resp.json(), ensure_ascii=False) + "\n")
 
         headers.pop("content-type")
