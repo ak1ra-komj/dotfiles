@@ -35,7 +35,7 @@ kube_dump() {
     # https://stackoverflow.com/a/42636398
     # with_entries(select( .key | test(PATTERN) | not))
     # walk(if type == "object" then with_entries(select(.key | test(PATTERN) | not)) else . end)
-    yq_cattle_regex='^((authz\\.cluster|secret\\.user|field|lifecycle|listener|workload)\\.)?cattle\\.io\\/'
+    jq_cattle_regex='^((authz\\.cluster|secret\\.user|field|lifecycle|listener|workload)\\.)?cattle\\.io\\/'
 
     if ! kubectl get namespaces --no-headers --output=name | grep -qE "namespace/${namespace}$"; then
         echo "namespace: ${namespace} does not exist, ignore..."
@@ -48,9 +48,9 @@ kube_dump() {
         for resource in "${resources_with_prefix[@]}"; do
             resource_dir="${namespace}/${api_resource}"
             test -d "${resource_dir}" || mkdir -p "${resource_dir}"
-            kubectl --namespace "${namespace}" get "${resource}" --output=yaml |
-                yq --yaml-output --sort-keys 'walk(
-                    if type == "object" then with_entries(select(.key | test("'"$yq_cattle_regex"'") | not)) else . end)
+            kubectl --namespace "${namespace}" get "${resource}" --output=json |
+                jq --indent 4 --sort-keys 'walk(
+                    if type == "object" then with_entries(select(.key | test("'"$jq_cattle_regex"'") | not)) else . end)
                     | del(
                         .metadata.namespace,
                         .metadata.annotations."deployment.kubernetes.io/revision",
@@ -64,7 +64,7 @@ kube_dump() {
                         .metadata.ownerReferences,
                         .status,
                         .spec.clusterIP
-                )' >"${resource_dir}/${resource#*/}.yaml"
+                )' >"${resource_dir}/${resource#*/}.json"
         done
     done
 }
@@ -92,6 +92,6 @@ main() {
     done
 }
 
-require_command kubectl yq
+require_command kubectl jq
 
 main "$@"

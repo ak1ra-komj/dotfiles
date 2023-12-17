@@ -18,9 +18,9 @@ require_command() {
 
 kube_convert() {
     tempdir=$(mktemp -d /tmp/kube-dump.XXXXXX)
-    find . -type f -name '*.yaml' -print0 | while IFS= read -r -d '' f; do
+    find . -type f -name '*.json' -print0 | while IFS= read -r -d '' f; do
         tempf=$(mktemp "${tempdir}/kube-convert.XXXXXXXXX")
-        if kubectl convert --local -f "$f" -o yaml >"$tempf"; then
+        if kubectl convert --local -f "$f" -o json >"$tempf"; then
             mv "$tempf" "$f"
         fi
     done
