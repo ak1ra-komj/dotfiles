@@ -1,5 +1,6 @@
 [init]
     defaultBranch = master
+    templateDir = ~/.git-templates/git-secrets
 [user]
     name = ak1ra
     email = git@ak1ra.xyz
