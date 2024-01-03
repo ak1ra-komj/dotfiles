@@ -12,11 +12,11 @@ def save_json(filename, data):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("inputs", nargs="+",
+    parser.add_argument("json_files", nargs="+", metavar="JSON_FILE",
                         help="json input files to sort_keys")
     args = parser.parse_args()
 
-    input_files = args.inputs if args.inputs and len(args.inputs) > 0 else []
+    input_files = args.json_files if args.json_files and len(args.json_files) > 0 else []
 
     for file in input_files:
         with open(file) as f:
