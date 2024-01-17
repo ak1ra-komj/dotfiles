@@ -1,13 +1,13 @@
 #! /bin/bash
 
 stow_bash() {
-    test -L ~/.bashrc || cp -v ~/.bashrc ~/.bashrc.$(date +%F_%s)
-    test -L ~/.profile || cp -v ~/.profile ~/.profile.$(date +%F_%s)
+    test -L ~/.bashrc || mv -v ~/.bashrc ~/.bashrc.$(date +%F_%s)
+    test -L ~/.profile || mv -v ~/.profile ~/.profile.$(date +%F_%s)
     stow bash
 }
 
 stow_cmdline() {
-    test -d ~/bin || mkdir ~/bin
+    test -d ~/bin || mkdir -p ~/bin
     stow cmdline
 }
 
