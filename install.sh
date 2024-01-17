@@ -17,6 +17,13 @@ stow_ansible() {
 }
 
 main() {
+    shlib="$(readlink -f ~/bin/shlib.sh)"
+    test -f "$shlib" || return
+    # shellcheck source=/dev/null
+    . "$shlib"
+
+    require_command stow
+
     stow_bash
     stow_cmdline
     # stow_ansible
