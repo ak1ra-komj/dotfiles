@@ -14,7 +14,7 @@ zfs_rename() {
     _zpool_new="${zfs_zvol_new%/*}"
 
     # use "zfs send | zfs receive" if cross zpool
-    if [ "${_zpool_old}" = "${_zpool_new%/*}" ]; then
+    if [ "${_zpool_old}" != "${_zpool_new}" ]; then
         zfs_snapshot="${zfs_snapshot_prefix}-$(date --utc +%F-%H%M)"
         zfs snapshot "${zfs_zvol_old}@${zfs_snapshot}"
         zfs send "${zfs_zvol_old}@${zfs_snapshot}" |
