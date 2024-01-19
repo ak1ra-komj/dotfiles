@@ -7,11 +7,14 @@ zfs_rename() {
     zfs_zvol_old="$1"
     zfs_zvol_new="$2"
 
-    test -b "${zfs_zvol_old}" || return
-    test ! -b "${zfs_zvol_new}" || return
+    test -b "/dev/${zfs_zvol_old}" || return
+    test ! -b "/dev/${zfs_zvol_new}" || return
 
-    # if cross zpool, use zfs send | zfs receive
-    if [ "${zfs_zvol_old%/*}" = "${zfs_zvol_new%/*}" ]; then
+    _zpool_old="${zfs_zvol_old%/*}"
+    _zpool_new="${zfs_zvol_new%/*}"
+
+    # use "zfs send | zfs receive" if cross zpool
+    if [ "${_zpool_old}" = "${_zpool_new%/*}" ]; then
         zfs_snapshot="${zfs_snapshot_prefix}-$(date --utc +%F-%H%M)"
         zfs snapshot "${zfs_zvol_old}@${zfs_snapshot}"
         zfs send "${zfs_zvol_old}@${zfs_snapshot}" |
