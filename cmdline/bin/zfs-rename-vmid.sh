@@ -1,6 +1,7 @@
 #!/bin/sh
 # zfs-vmid-rename.sh apps/1010 local-zfs1/1253
 
+qemu_server="~/pve/qemu-server"
 zfs_snapshot_prefix="zfs-rename-snap"
 
 zfs_rename() {
@@ -44,14 +45,14 @@ zfs_rename_vmid() {
         "${zpool_new}/vm-${vmid_new}-disk-0"
 
     cd /etc/pve/qemu-server || return
+    test -d "${qemu_server}" || mkdir -p "${qemu_server}"
+    mv -v "${vmid_old}.conf" "${qemu_server}"
+
     vm_disk_old_regex="${zpool_old}(:|/)(base|vm)-${vmid_old}-(cloudinit|disk-[0-9])"
     vm_disk_new_regex="${zpool_new}\1\2-${vmid_new}-\3"
     sed --regexp-extended \
         -e 's%'"${vm_disk_old_regex}"'%'"${vm_disk_new_regex}"'%' \
-        "${vmid_old}.conf" >"${vmid_new}.conf"
-
-    test -d ~/qemu-server || mkdir -p ~/qemu-server
-    mv -v "${vmid_old}.conf" ~/qemu-server
+        "${qemu_server}/${vmid_old}.conf" >"${vmid_new}.conf"
 
     cd - || return
 }
