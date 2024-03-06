@@ -52,7 +52,8 @@ zfs_rename_vmid() {
     vm_disk_new_regex="${zpool_new}\1\2-${vmid_new}-\3"
     sed --regexp-extended \
         -e 's%'"${vm_disk_old_regex}"'%'"${vm_disk_new_regex}"'%' \
-        "${qemu_server}/${vmid_old}.conf" >"${vmid_new}.conf"
+        "${qemu_server}/${vmid_old}.conf" | tee "${vmid_new}.conf"
+    diff "${qemu_server}/${vmid_old}.conf" "${vmid_new}.conf"
 
     cd - || return
 }
