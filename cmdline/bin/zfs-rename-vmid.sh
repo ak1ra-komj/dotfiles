@@ -1,7 +1,7 @@
 #!/bin/sh
 # zfs-vmid-rename.sh apps/1010 local-zfs1/1253
 
-qemu_server="~/pve/qemu-server"
+qemu_server="${HOME}/pve/qemu-server"
 zfs_snapshot_prefix="zfs-rename-snap"
 
 zfs_rename() {
