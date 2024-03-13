@@ -46,7 +46,7 @@ zfs_rename_vmid() {
     mapfile -t vm_disks < <(find "/dev/${zpool_old}" -type l | grep -E "${vm_disk_old_regex}$")
     for vm_disk in "${vm_disks[@]}"; do
         vm_disk_new="$(echo "${vm_disk}" |
-            sed -E 's/'"${vm_disk_old_regex}"'/'"${vm_disk_new_regex}"'/')"
+            sed -E 's%'"${vm_disk_old_regex}"'%'"${vm_disk_new_regex}"'%')"
         zfs_rename "${vm_disk}" "${vm_disk_new}"
     done
 
