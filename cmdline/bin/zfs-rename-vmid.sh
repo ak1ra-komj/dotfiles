@@ -1,6 +1,9 @@
 #!/bin/bash
 # zfs-vmid-rename.sh tank/3101 data0/2101
 
+set -o errexit
+set -o xtrace
+
 qemu_server="${HOME}/pve/qemu-server"
 zfs_snapshot_prefix="zfs-rename-snap"
 
