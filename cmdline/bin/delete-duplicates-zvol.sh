@@ -11,19 +11,25 @@ delete_duplicates_zvol() {
     test -d "/dev/${zpool_src}" || return
     test -d "/dev/${zpool_dest}" || return
 
-    mapfile -t zvol_to_delete < <(
+    mapfile -t zvol_from_zpool_src < <(
         zfs list -H -o name -r "${zpool_src}" |
             grep -E '/vm-[0-9]+' |
             sed 's%'"${zpool_src}"'%'"${zpool_dest}"'%'
     )
 
-    for zvol in "${zvol_to_delete[@]}"; do
-        test -b "/dev/${zvol}" && printf "zfs destroy -r %s\n" "${zvol}"
+    zvol_to_delete=()
+    for zvol in "${zvol_from_zpool_src[@]}"; do
+        test -b "/dev/${zvol}" && {
+            printf "zfs destroy -r %s\n" "${zvol}"
+            zvol_to_delete+=("${zvol}")
+        }
     done
 
-    choice=""
-    printf "Please answer YES_I_WANT_TO_DESTROY_MY_ZVOL to continue: "
-    read choice
+    if [ "${#zvol_to_delete[@]}" -eq 0 ]; then
+        return
+    fi
+
+    read -r -p "Please answer YES_I_WANT_TO_DESTROY_MY_ZVOL to continue: " choice
     if [ "${choice}" != "YES_I_WANT_TO_DESTROY_MY_ZVOL" ]; then
         return
     fi
