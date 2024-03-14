@@ -1,9 +1,12 @@
 #!/bin/bash
+# author: ak1ra
+# date: 2024-03-14
+# rename my obsidian-vault files with last modified date prefix
 
 main() {
     mapfile -t src_files < <(
-        find "$1" -type f |
-            xargs realpath --relative-to="$(pwd)" -s |
+        find "$1" -type f -exec \
+            realpath --strip --relative-to="$(pwd)" "{}" \; |
             grep -E '\.(md|txt|png|pdf|drawio|canvas)$'
     )
 
@@ -16,7 +19,9 @@ main() {
         date_prefix="$(date --date="@$(stat --format='%Y' "${src}")" +%F)-"
         dest="${dirname}/$(echo "${basename}" | sed -E 's%'"${date_prefix_regex}"'%'"${date_prefix}"'%')"
 
-        mv -v "${src}" "${dest}"
+        if [ "${src}" != "${dest}" ]; then
+            mv -v "${src}" "${dest}"
+        fi
     done
 }
 
