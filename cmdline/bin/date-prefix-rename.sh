@@ -4,7 +4,7 @@ main() {
     mapfile -t src_files < <(
         find "$1" -type f |
             xargs realpath --relative-to="$(pwd)" -s |
-            grep -E '\.(md|txt|png|pdf|drawio)$'
+            grep -E '\.(md|txt|png|pdf|drawio|canvas)$'
     )
 
     for src in "${src_files[@]}"; do
