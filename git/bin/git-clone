@@ -1,31 +1,31 @@
 #!/bin/sh
 
-git_clone() {
-    shlib="$(readlink -f ~/bin/shlib.sh)"
-    test -f "$shlib" || return
-    # shellcheck source=/dev/null
-    . "$shlib"
+code_dir="${HOME}/code"
 
+require_command() {
+    for c in "$@"; do
+        command -v "$c" >/dev/null || {
+            echo >&2 "required command '$c' is not installed, aborting..."
+            exit 1
+        }
+    done
+}
+
+git_clone() {
     require_command git
 
     repo="$1"
-    code_dir="$HOME/code"
+    test -n "${repo}" || return
+    repo_dir="${code_dir}/$(echo "${repo}" |
+        sed -E -e 's%https?://%%' -e 's%^git@%%' -e 's%\.git$%%' -e 's%:%/%')"
 
-    repo="${repo%.git}"
-    if echo "$repo" | grep -qE "^git@"; then
-        repo_dir="${code_dir}/$(echo "${repo#git@}" | tr ':' '/')"
-    elif echo "$repo" | grep -qE "^https?://"; then
-        repo_dir="${code_dir}/${repo#http?://}"
-    else
-        return
-    fi
-
-    if [ -d "$repo_dir" ]; then
-        cd "$repo_dir" || return
+    if [ -d "${repo_dir}" ]; then
+        echo "repo_dir: ${repo_dir} already exist, 'git fetch' it..."
+        cd "${repo_dir}" || return
         git fetch
         cd - >/dev/null 2>&1 || return
     else
-        git clone "$repo" "$repo_dir"
+        git clone "${repo}" "${repo_dir}"
     fi
 }
 
