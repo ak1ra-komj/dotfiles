@@ -4,12 +4,16 @@
 # select last frame, ref: https://superuser.com/a/1448673
 # ffmpeg -sseof -3 -i input.mp4 -update 1 -q:v 1 last.png
 
-extract_last_frame() {
-    shlib="$(readlink -f ~/bin/shlib.sh)"
-    test -f "$shlib" || return
-    # shellcheck source=/dev/null
-    . "$shlib"
+require_command() {
+    for c in "$@"; do
+        command -v "$c" >/dev/null || {
+            echo >&2 "required command '$c' is not installed, aborting..."
+            exit 1
+        }
+    done
+}
 
+extract_last_frame() {
     require_command ffmpeg
 
     find . -type f -print0 | while IFS= read -r -d '' infile; do

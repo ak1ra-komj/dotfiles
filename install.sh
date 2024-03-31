@@ -1,5 +1,14 @@
 #! /bin/bash
 
+require_command() {
+    for c in "$@"; do
+        command -v "$c" >/dev/null || {
+            echo >&2 "required command '$c' is not installed, aborting..."
+            exit 1
+        }
+    done
+}
+
 stow_bash() {
     test -L ~/.bashrc || mv -v ~/.bashrc ~/.bashrc.$(date +%F_%s)
     test -L ~/.profile || mv -v ~/.profile ~/.profile.$(date +%F_%s)
@@ -17,11 +26,6 @@ stow_ansible() {
 }
 
 main() {
-    shlib="$(readlink -f ~/bin/shlib.sh)"
-    test -f "$shlib" || return
-    # shellcheck source=/dev/null
-    . "$shlib"
-
     require_command stow
 
     stow_bash

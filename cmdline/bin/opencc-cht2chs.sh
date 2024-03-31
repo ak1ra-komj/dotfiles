@@ -3,6 +3,15 @@
 # date: 2023-02-17
 # convert cht text file (subtitles) to chs using opencc
 
+require_command() {
+    for c in "$@"; do
+        command -v "$c" >/dev/null || {
+            echo >&2 "required command '$c' is not installed, aborting..."
+            exit 1
+        }
+    done
+}
+
 opencc_cht2chs() {
     infile="$1"
     outfile="${infile%.cht.*}.utf8-chs.${infile##*.}"
@@ -12,11 +21,6 @@ opencc_cht2chs() {
 }
 
 main() {
-    shlib="$(readlink -f ~/bin/shlib.sh)"
-    test -f "$shlib" || return
-    # shellcheck source=/dev/null
-    . "$shlib"
-
     require_command parallel encguess iconv opencc
 
     export -f opencc_cht2chs

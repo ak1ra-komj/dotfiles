@@ -2,6 +2,15 @@
 # Convert all pxder downloaded Pixiv .zip archive to .gif/.mp4
 # ref: https://github.com/Tsuk1ko/pxder
 
+require_command() {
+    for c in "$@"; do
+        command -v "$c" >/dev/null || {
+            echo >&2 "required command '$c' is not installed, aborting..."
+            exit 1
+        }
+    done
+}
+
 pixiv_to_gif() {
     infile="$1"
     format="$2"
@@ -30,11 +39,6 @@ pixiv_to_gif() {
 }
 
 main() {
-    shlib="$(readlink -f ~/bin/shlib.sh)"
-    test -f "$shlib" || return
-    # shellcheck source=/dev/null
-    . "$shlib"
-
     require_command ffmpeg unzip parallel
 
     format="$1"

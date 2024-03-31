@@ -2,6 +2,15 @@
 # ffprobe -v quiet -print_format json -show_streams infile.mkv
 # ffmpeg ... -map input_file_index:stream_type_specifier:stream_index
 
+require_command() {
+    for c in "$@"; do
+        command -v "$c" >/dev/null || {
+            echo >&2 "required command '$c' is not installed, aborting..."
+            exit 1
+        }
+    done
+}
+
 usage() {
     this="$(readlink -f "$0")"
 
@@ -51,11 +60,6 @@ extract_video_streams() {
 }
 
 main() {
-    shlib="$(readlink -f ~/bin/shlib.sh)"
-    test -f "$shlib" || return
-    # shellcheck source=/dev/null
-    . "$shlib"
-
     require_command ffmpeg ffprobe jq
 
     # default options
