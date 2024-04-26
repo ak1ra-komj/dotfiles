@@ -132,46 +132,54 @@ export PATH=~/bin:~/.local/bin:$PATH
 # custom bash functions
 test -f ~/.bash_functions && source ~/.bash_functions
 
+if command -v keychain >/dev/null; then
+    # keychain: re-use ssh-agent and/or gpg-agent between logins
+    # apt install keychain
+    eval $(keychain --eval --agents ssh $(find ~/.ssh/ssh-agent -type f ! -name '*.pub'))
+else
+    # ssh-agent: setup SSH_AUTH_SOCK & SSH_AGENT_PID env
+    eval $(ssh-agent)
+    ssh-add $(find ~/.ssh/ssh-agent -type f ! -name '*.pub') 2>/dev/null
+fi
+
 # custom http_proxy / https_proxy
 test -f ~/.http_proxy.json && source ~/.http_proxy.sh
 
 # python3
-# apt install pipx, pipx depends python3-argcomplete
+# apt install pipx
+# pipx depends python3-argcomplete which provide register-python-argcomplete
 command -v pipx >/dev/null && eval "$(register-python-argcomplete pipx)"
 # pipx install poetry
-# poetry completions bash | sudo /etc/bash_completion.d/poetry
+command -v poetry >/dev/null && {
+    source <(poetry completions bash)
+}
 
 # golang
-GOPATH=~/.go
-if [ -d "$GOPATH" ]; then
-    export GOPATH
+if [ -d ~/.go ]; then
+    export GOPATH=~/.go
     export GOROOT=~/.local/go
     export PATH=$GOPATH/bin:$GOROOT/bin:$PATH
     #export GOPROXY=https://goproxy.cn,direct
 fi
 
+# rust
+test -s ~/.cargo/env && source ~/.cargo/env
+
 # nvm
 # curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.5/install.sh > nvm.sh
-NVM_DIR=~/.nvm
-if [ -d "$NVM_DIR" ]; then
-    export NVM_DIR
+if [ -d "~/.nvm" ]; then
+    export NVM_DIR=~/.nvm
     test -s "$NVM_DIR/nvm.sh" && source "$NVM_DIR/nvm.sh"
     test -s "$NVM_DIR/bash_completion" && source "$NVM_DIR/bash_completion"
 fi
 
-# rust
-test -s ~/.cargo/env && source ~/.cargo/env
+# awscli: https://github.com/aws/aws-cli
+# apt install awscli
+command -v aws >/dev/null && {
+    complete -C /usr/libexec/aws_completer aws || complete -C aws_completer aws
+}
 
-# aws-cli
-command -v aws >/dev/null && complete -C aws_completer aws
+# gcloud: https://cloud.google.com/sdk/docs/install
 
-# tccli
+# tccli: https://github.com/TencentCloud/tencentcloud-cli
 command -v tccli >/dev/null && complete -C tccli_completer tccli
-
-# # ssh-agent - setup SSH_AUTH_SOCK & SSH_AGENT_PID env
-# eval $(ssh-agent)
-# ssh-add $(find ~/.ssh -type f -name '*.pem') 2>/dev/null
-
-# keychain - re-use ssh-agent and/or gpg-agent between logins
-command -v keychain >/dev/null &&
-    eval $(keychain --eval --agents ssh $(find ~/.ssh/ssh-agent -type f ! -name '*.pub'))
