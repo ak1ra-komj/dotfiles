@@ -112,7 +112,6 @@ alias l='ls -CF'
 # See /usr/share/doc/bash-doc/examples in the bash-doc package.
 
 if [ -f ~/.bash_aliases ]; then
-    # shellcheck source=~/.bash_aliases
     . ~/.bash_aliases
 fi
 
