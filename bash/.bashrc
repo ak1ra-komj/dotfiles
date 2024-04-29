@@ -1,3 +1,4 @@
+# shellcheck shell=bash disable=SC1090,SC1091
 # ~/.bashrc: executed by bash(1) for non-login shells.
 # see /usr/share/doc/bash/examples/startup-files (in the package bash-doc)
 # for examples
@@ -24,7 +25,7 @@ HISTSIZE=10000
 HISTFILESIZE=400000000
 
 # /etc/os-release
-OS_RELEASE_ID="$(awk -F= '/^ID=/ {print $2}' /etc/os-release | tr 'A-Z' 'a-z')"
+OS_RELEASE_ID="$(awk -F= '/^ID=/ {print $2}' /etc/os-release | tr '[:upper:]' '[:lower:]')"
 
 # check the window size after each command and, if necessary,
 # update the values of LINES and COLUMNS.
@@ -79,11 +80,15 @@ xterm* | rxvt*)
 esac
 
 # enable color support of ls and also add handy aliases
-if [ "$OS_RELEASE_ID" == "freebsd" ]; then
+if [ "$OS_RELEASE_ID" = "freebsd" ]; then
     alias ls='ls -G --color=auto'
 fi
-if [ -x /usr/bin/dircolors ]; then
-    test -r ~/.dircolors && eval "$(dircolors -b ~/.dircolors)" || eval "$(dircolors -b)"
+if command -v dircolors >/dev/null; then
+    if [ -r ~/.dircolors ]; then
+        eval "$(dircolors -b ~/.dircolors)"
+    else
+        eval "$(dircolors -b)"
+    fi
     alias ls='ls --color=auto'
     alias dir='dir --color=auto'
     alias vdir='vdir --color=auto'
@@ -107,15 +112,16 @@ alias l='ls -CF'
 # See /usr/share/doc/bash-doc/examples in the bash-doc package.
 
 if [ -f ~/.bash_aliases ]; then
+    # shellcheck source=~/.bash_aliases
     . ~/.bash_aliases
 fi
 
 # enable programmable completion features (you don't need to enable
 # this, if it's already enabled in /etc/bash.bashrc and /etc/profile
 # sources /etc/bash.bashrc).
-if [ "$OS_RELEASE_ID" == "freebsd" ]; then
-    if [ -n "$PS1" -a -f /usr/local/share/bash-completion/bash_completion.sh ]; then
-        source /usr/local/share/bash-completion/bash_completion.sh
+if [ "$OS_RELEASE_ID" = "freebsd" ]; then
+    if [ -n "$PS1" ] && [ -f /usr/local/share/bash-completion/bash_completion.sh ]; then
+        . /usr/local/share/bash-completion/bash_completion.sh
     fi
 fi
 if ! shopt -oq posix; then
@@ -130,20 +136,21 @@ fi
 export PATH=~/bin:~/.local/bin:$PATH
 
 # custom bash functions
-test -f ~/.bash_functions && source ~/.bash_functions
+test -f ~/.bash_functions && . ~/.bash_functions
 
+mapfile -t ssh_agent < <(find ~/.ssh/ssh-agent -type f ! -name '*.pub')
 if command -v keychain >/dev/null; then
     # keychain: re-use ssh-agent and/or gpg-agent between logins
     # apt install keychain
-    eval $(keychain --eval --agents ssh $(find ~/.ssh/ssh-agent -type f ! -name '*.pub'))
+    eval "$(keychain --eval --agents ssh "${ssh_agent[@]}")"
 else
     # ssh-agent: setup SSH_AUTH_SOCK & SSH_AGENT_PID env
-    eval $(ssh-agent)
-    ssh-add $(find ~/.ssh/ssh-agent -type f ! -name '*.pub') 2>/dev/null
+    eval "$(ssh-agent)"
+    ssh-add "${ssh_agent[@]}" 2>/dev/null
 fi
 
 # custom http_proxy / https_proxy
-test -f ~/.http_proxy.json && source ~/.http_proxy.sh
+test -f ~/.http_proxy.json && . ~/.http_proxy.sh
 
 # python3
 # apt install pipx
@@ -151,35 +158,39 @@ test -f ~/.http_proxy.json && source ~/.http_proxy.sh
 command -v pipx >/dev/null && eval "$(register-python-argcomplete pipx)"
 # pipx install poetry
 command -v poetry >/dev/null && {
-    source <(poetry completions bash)
+    . <(poetry completions bash)
 }
 
 # golang
-if [ -d ~/.go ]; then
-    export GOPATH=~/.go
+GOPATH=~/.go
+if [ -d "$GOPATH" ]; then
+    export GOPATH
     export GOROOT=~/.local/go
     export PATH=$GOPATH/bin:$GOROOT/bin:$PATH
     #export GOPROXY=https://goproxy.cn,direct
 fi
 
 # rust
-test -s ~/.cargo/env && source ~/.cargo/env
+test -s ~/.cargo/env && . ~/.cargo/env
 
 # nvm
-# curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.5/install.sh > nvm.sh
-if [ -d "~/.nvm" ]; then
-    export NVM_DIR=~/.nvm
-    test -s "$NVM_DIR/nvm.sh" && source "$NVM_DIR/nvm.sh"
-    test -s "$NVM_DIR/bash_completion" && source "$NVM_DIR/bash_completion"
+# git clone https://github.com/nvm-sh/nvm.git ~/.nvm && bash ~/.nvm/install.sh
+NVM_DIR=~/.nvm
+if [ -d "$NVM_DIR" ]; then
+    export NVM_DIR
+    test -s "$NVM_DIR/nvm.sh" && . "$NVM_DIR/nvm.sh"
+    test -s "$NVM_DIR/bash_completion" && . "$NVM_DIR/bash_completion"
 fi
 
-# awscli: https://github.com/aws/aws-cli
+# awscli: https://github.com/aws/aws-cli/tree/v2
 # apt install awscli
 command -v aws >/dev/null && {
     complete -C /usr/libexec/aws_completer aws || complete -C aws_completer aws
 }
 
-# gcloud: https://cloud.google.com/sdk/docs/install
-
 # tccli: https://github.com/TencentCloud/tencentcloud-cli
 command -v tccli >/dev/null && complete -C tccli_completer tccli
+
+# gcloud: https://cloud.google.com/sdk/docs/install
+
+# aliyun-cli: https://github.com/aliyun/aliyun-cli
