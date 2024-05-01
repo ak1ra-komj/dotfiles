@@ -137,16 +137,18 @@ export PATH=~/bin:~/.local/bin:$PATH
 # custom bash functions
 test -f ~/.bash_functions && . ~/.bash_functions
 
-mapfile -t ssh_agent < <(find ~/.ssh/ssh-agent -type f ! -name '*.pub')
-if command -v keychain >/dev/null; then
-    # keychain: re-use ssh-agent and/or gpg-agent between logins
-    # apt install keychain
-    eval "$(keychain --eval --agents ssh "${ssh_agent[@]}")"
-else
-    # ssh-agent: setup SSH_AUTH_SOCK & SSH_AGENT_PID env
-    eval "$(ssh-agent)"
-    ssh-add "${ssh_agent[@]}" 2>/dev/null
-fi
+test -d ~/.ssh/ssh-agent && {
+    mapfile -t ssh_agent < <(find ~/.ssh/ssh-agent -type f ! -name '*.pub')
+    if command -v keychain >/dev/null; then
+        # keychain: re-use ssh-agent and/or gpg-agent between logins
+        # apt install keychain
+        eval "$(keychain --eval --agents ssh "${ssh_agent[@]}")"
+    else
+        # ssh-agent: setup SSH_AUTH_SOCK & SSH_AGENT_PID env
+        eval "$(ssh-agent)"
+        ssh-add "${ssh_agent[@]}" 2>/dev/null
+    fi
+}
 
 # custom http_proxy / https_proxy
 test -f ~/.http_proxy.json && . ~/.http_proxy.sh
@@ -156,18 +158,16 @@ test -f ~/.http_proxy.json && . ~/.http_proxy.sh
 # pipx depends python3-argcomplete which provide register-python-argcomplete
 command -v pipx >/dev/null && eval "$(register-python-argcomplete pipx)"
 # pipx install poetry
-command -v poetry >/dev/null && {
-    . <(poetry completions bash)
-}
+command -v poetry >/dev/null && . <(poetry completions bash)
 
 # golang
 GOPATH=~/.go
-if [ -d "$GOPATH" ]; then
+test -d "${GOPATH}" && {
     export GOPATH
     export GOROOT=~/.local/go
-    export PATH=$GOPATH/bin:$GOROOT/bin:$PATH
+    export PATH=${GOPATH}/bin:${GOROOT}/bin:$PATH
     #export GOPROXY=https://goproxy.cn,direct
-fi
+}
 
 # rust
 test -s ~/.cargo/env && . ~/.cargo/env
@@ -175,20 +175,31 @@ test -s ~/.cargo/env && . ~/.cargo/env
 # nvm
 # git clone https://github.com/nvm-sh/nvm.git ~/.nvm && bash ~/.nvm/install.sh
 NVM_DIR=~/.nvm
-if [ -d "$NVM_DIR" ]; then
+test -d "${NVM_DIR}" && {
     export NVM_DIR
-    test -s "$NVM_DIR/nvm.sh" && . "$NVM_DIR/nvm.sh"
-    test -s "$NVM_DIR/bash_completion" && . "$NVM_DIR/bash_completion"
-fi
+    test -s "${NVM_DIR}/nvm.sh" && . "${NVM_DIR}/nvm.sh"
+    test -s "${NVM_DIR}/bash_completion" && . "${NVM_DIR}/bash_completion"
+}
 
 # awscli: https://github.com/aws/aws-cli/tree/v2
-# apt install awscli
 command -v aws >/dev/null && {
-    complete -C /usr/libexec/aws_completer aws || complete -C aws_completer aws
+    if command -v aws_completer >/dev/null; then
+        complete -C aws_completer aws
+    else
+        # apt install awscli
+        complete -C /usr/libexec/aws_completer aws
+    fi
 }
 
 # tccli: https://github.com/TencentCloud/tencentcloud-cli
-command -v tccli >/dev/null && complete -C tccli_completer tccli
+command -v tccli >/dev/null && {
+    if command -v tccli_completer >/dev/null; then
+        complete -C tccli_completer tccli
+    else
+        # pipx install tccli
+        complete -C ~/.local/pipx/venvs/tccli/bin/tccli_completer tccli
+    fi
+}
 
 # gcloud: https://cloud.google.com/sdk/docs/install
 
