@@ -159,6 +159,8 @@ test -f ~/.http_proxy.json && . ~/.http_proxy.sh
 command -v pipx >/dev/null && eval "$(register-python-argcomplete pipx)"
 # pipx install poetry
 command -v poetry >/dev/null && . <(poetry completions bash)
+# pipx install pdm
+command -v pdm >/dev/null && . <(pdm completion bash)
 
 # golang
 GOPATH=~/.go
