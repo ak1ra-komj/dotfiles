@@ -36,7 +36,7 @@ inoremap <C-U> <C-G>u<C-U>
 "  koehler, morning, murphy, pablo
 "  peachpuff, ron, shine, slate
 "  torte, zellner
-colorscheme elflord
+colorscheme default
 
 " Some key binds
 inoremap jk <esc>
