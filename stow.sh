@@ -24,13 +24,16 @@ main() {
     stow bash
     stow cmdline
 
+    # stow_keep ${XDG_CONFIG_HOME}/git
+    stow_keep "${HOME}/.config/git"
     stow git
+
     stow vim
 
     stow_keep "${HOME}/.ansible/inventory"
     stow ansible
 
-    stow dig
+    # stow dig
     # stow wget
     # stow tmux
 }
