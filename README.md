@@ -27,3 +27,7 @@ EOF
 `kube-dump.sh` 用于批量导出 Kubernetes 中所有资源的 manifest, 过程中使用 `jq` 删除一些再次导入别的集群时不再需要的字段或者由 Rancher 添加的自定义字段.
 
 `kube-convert.sh` 是 [kubectl convert plugin](https://kubernetes.io/docs/tasks/tools/install-kubectl-linux/#install-kubectl-convert-plugin) 的封装, 用于批量对当前目录下的所有 manifest 执行 kubectl convert, 该插件没有提供 in-place 修改选项, 因此使用了临时文件, 执行时短时间内会有大量小文件读写, 可能存在性能问题.
+
+## WARNING: skipping protected directory xxx
+
+本来想把 `.stow_keep` 改名成 `.stow`, 却意外发现, 某个目录中存在名为 `.stow` 的文件时, 会被 stow 认为是受保护的目录.

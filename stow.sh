@@ -10,9 +10,9 @@ require_command() {
 }
 
 stow_keep() {
-    keep_dir="$1"
-    test -d "${keep_dir}" || mkdir -p "${keep_dir}"
-    touch "${keep_dir}/.stow_keep"
+    keep="$1"
+    test -d "${keep}" || mkdir -p "${keep}"
+    touch "${keep}/.stow_keep"
 }
 
 main() {
