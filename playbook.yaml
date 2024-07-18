@@ -1,0 +1,61 @@
+---
+- name: deploy dotfiles using GNU Stow
+  hosts: "{{ host | default('local') }}"
+  vars:
+    dotfiles: .
+    stow_dir: "{{ ansible_env.HOME }}/.dotfiles"
+    stow_target: "{{ ansible_env.HOME }}"
+    stow_packages:
+      ["bash", "cmdline", "git", "vim"]
+    stow_keep_dirs:
+      - "{{ ansible_env.HOME }}/bin"
+      - "{{ ansible_env.HOME }}/.config/git"
+      - "{{ ansible_env.HOME }}/.ssh/config.d"
+
+  tasks:
+    - name: ensure GNU Stow is installed
+      become: true
+      become_user: root
+      ansible.builtin.package:
+        name: stow
+        state: present
+
+    - name: ensure directories
+      ansible.builtin.file:
+        path: "{{ stow_dir }}"
+        owner: "{{ ansible_effective_user_id }}"
+        group: "{{ ansible_effective_group_id }}"
+        state: directory
+
+    - name: touch .stow_keep file
+      block:
+        - name: ensure directories
+          ansible.builtin.file:
+            path: "{{ item }}"
+            owner: "{{ ansible_effective_user_id }}"
+            group: "{{ ansible_effective_group_id }}"
+            state: directory
+          loop: "{{ stow_keep_dirs }}"
+
+        - name: touch .stow_keep file
+          ansible.builtin.file:
+            path: "{{ item }}/.stow_keep"
+            owner: "{{ ansible_effective_user_id }}"
+            group: "{{ ansible_effective_group_id }}"
+            state: touch
+          loop: "{{ stow_keep_dirs }}"
+
+    - name: rsync dotfiles to stow_dir
+      ansible.builtin.synchronize:
+        src: "{{ dotfiles }}/"
+        dest: "{{ stow_dir }}/"
+        recursive: true
+        delete: true
+      notify: stow_handler
+
+  handlers:
+    - name: stow_handler
+      command: "stow --verbose --dir={{ stow_dir }} --target={{ stow_target }} {{ item }}"
+      args:
+        chdir: "{{ stow_dir }}"
+      loop: "{{ stow_packages }}"
