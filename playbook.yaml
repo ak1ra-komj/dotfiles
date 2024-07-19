@@ -17,7 +17,9 @@
       become: true
       become_user: root
       ansible.builtin.package:
-        name: stow
+        name:
+          - stow
+          - rsync
         state: present
 
     - name: ensure directories
@@ -27,23 +29,21 @@
         group: "{{ ansible_effective_group_id }}"
         state: directory
 
-    - name: touch .stow_keep file
-      block:
-        - name: ensure directories
-          ansible.builtin.file:
-            path: "{{ item }}"
-            owner: "{{ ansible_effective_user_id }}"
-            group: "{{ ansible_effective_group_id }}"
-            state: directory
-          loop: "{{ stow_keep_dirs }}"
+    - name: ensure stow_keep_dirs exists
+      ansible.builtin.file:
+        path: "{{ item }}"
+        owner: "{{ ansible_effective_user_id }}"
+        group: "{{ ansible_effective_group_id }}"
+        state: directory
+      loop: "{{ stow_keep_dirs }}"
 
-        - name: touch .stow_keep file
-          ansible.builtin.file:
-            path: "{{ item }}/.stow_keep"
-            owner: "{{ ansible_effective_user_id }}"
-            group: "{{ ansible_effective_group_id }}"
-            state: touch
-          loop: "{{ stow_keep_dirs }}"
+    - name: touch .stow_keep file
+      ansible.builtin.file:
+        path: "{{ item }}/.stow_keep"
+        owner: "{{ ansible_effective_user_id }}"
+        group: "{{ ansible_effective_group_id }}"
+        state: touch
+      loop: "{{ stow_keep_dirs }}"
 
     - name: rsync dotfiles to stow_dir
       ansible.builtin.synchronize:
@@ -51,6 +51,7 @@
         dest: "{{ stow_dir }}/"
         recursive: true
         delete: true
+        perms: true
       notify: stow_handler
 
   handlers:
