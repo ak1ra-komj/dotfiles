@@ -99,7 +99,8 @@ if command -v dircolors >/dev/null; then
 fi
 
 # colored GCC warnings and errors
-export GCC_COLORS='error=01;31:warning=01;35:note=01;36:caret=01;32:locus=01:quote=01'
+GCC_COLORS='error=01;31:warning=01;35:note=01;36:caret=01;32:locus=01:quote=01'
+export GCC_COLORS
 
 # some more ls aliases
 alias ll='ls -l'
@@ -132,7 +133,8 @@ if ! shopt -oq posix; then
 fi
 
 # ensure local PATH
-export PATH=~/bin:~/.local/bin:$PATH
+PATH=~/bin:~/.local/bin:$PATH
+export PATH
 
 # custom bash functions
 test -f ~/.bash_functions && . ~/.bash_functions
@@ -163,12 +165,13 @@ command -v poetry >/dev/null && . <(poetry completions bash)
 command -v pdm >/dev/null && . <(pdm completion bash)
 
 # golang
-GOPATH=~/.go
-test -d "${GOPATH}" && {
-    export GOPATH
-    export GOROOT=~/.local/go
-    export PATH=${GOPATH}/bin:${GOROOT}/bin:$PATH
-    #export GOPROXY=https://goproxy.cn,direct
+# sudo ln -s /usr/local/go/bin/* /usr/local/bin
+command -v go >/dev/null && {
+    GOPATH=~/.go
+    PATH="${GOPATH}/bin:$PATH"
+    export PATH GOPATH
+    # GOPROXY=https://goproxy.cn,direct
+    # export PATH GOPATH GOPROXY
 }
 
 # rust
