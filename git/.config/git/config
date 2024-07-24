@@ -1,5 +1,6 @@
 [core]
     quotePath = false
+    autocrlf = false
 
 [init]
     defaultBranch = master
