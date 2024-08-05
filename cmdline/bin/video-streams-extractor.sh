@@ -2,6 +2,8 @@
 # ffprobe -v quiet -print_format json -show_streams infile.mkv
 # ffmpeg ... -map input_file_index:stream_type_specifier:stream_index
 
+set -o errexit
+
 require_command() {
     for c in "$@"; do
         command -v "$c" >/dev/null || {
@@ -16,15 +18,14 @@ usage() {
 
     cat <<_EOF
 Usage:
-    $this [--dry-run] [--glob <glob>] [--codec-type <codec_type>]
+    $this [--dry-run] [--glob <glob>] [--codec <codec_type>]
 
 Options:
-    -h, --help          print this help message
+    -c, --codec         this is an 'egrep' regex pattern, indicate stream codec_type to select,
+                        use 'audio|subtitle' to both select audio and subtitle streams, default is 'subtitle'.
+    -g, --glob          infile glob pattern for 'find ... -name \$glob', default is '*.mkv'
     -d, --dry-run       dry run mode, only print 'ffmpeg' commands
-    -g, --glob          infile glob pattern for 'find ... -name <glob>', default is '*.mkv'
-    -c, --codec-type    this is an 'egrep' regex pattern, indicate stream codec_type to select,
-                        use 'audio|subtitle' to both select audio and subtitle streams,
-                        default is 'subtitle'.
+    -h, --help          print this help message
 
 _EOF
     exit 1
@@ -35,27 +36,34 @@ extract_video_streams() {
     codec_type="$2"
     dry_run="$3"
     # ref: https://www.starkandwayne.com/blog/bash-for-loop-over-json-array-using-jq/
-    mapfile -t streams_base64 < <(ffprobe -v quiet -print_format json -show_streams "$infile" | jq -r -c '.streams[] | @base64')
+    readarray -t streams < <(
+        ffprobe -loglevel quiet -print_format json -show_streams "${infile}" | jq -c '.streams[]'
+    )
+
     map_args=""
-    for stream_base64 in "${streams_base64[@]}"; do
-        stream="$(echo "$stream_base64" | base64 -d)"
-        stream_codec_type="$(echo "$stream" | jq -r .codec_type)"
-        if ! echo "$stream_codec_type" | grep -qE "$codec_type"; then
+    for stream in "${streams[@]}"; do
+        stream_codec_type="$(jq -r .codec_type <<<"${stream}")"
+        if ! echo "${stream_codec_type}" | grep -qE "${codec_type}"; then
             continue
         fi
-        stream_index="$(echo "$stream" | jq -r .index)"
-        stream_codec_name="$(echo "$stream" | jq -r .codec_name | sed 's/subrip/srt/g')"
-        stream_language="$(echo "$stream" | jq -r .tags.language)"
+
+        stream_index="$(jq -r '.index' <<<"${stream}")"
+        stream_codec_name="$(jq -r '.codec_name' <<<"${stream}" | sed 's/subrip/srt/g')"
+        stream_language="$(jq -r '.tags.language' <<<"${stream}")"
         stream_output="${infile%.*}.${stream_language}.${stream_index}.${stream_codec_name}"
-        map_args="-map 0:$stream_index \"$stream_output\" $map_args"
+
+        map_args='-map "0:'"${stream_index}"'" "'"${stream_output}"'" '"${map_args}"''
     done
 
-    if [ -n "$map_args" ]; then
-        echo "ffmpeg -n -v warning -i \"$infile\" $map_args"
-        if [ "$dry_run" = "false" ]; then
-            # about -nostdin option, ref: https://mywiki.wooledge.org/BashFAQ/089
-            eval "ffmpeg -nostdin -n -v warning -i \"$infile\" $map_args"
+    if [ -n "${map_args}" ]; then
+        cmd='ffmpeg -nostdin -n -loglevel quiet -i "'"${infile}"'" '${map_args}''
+        if [ "${dry_run}" = "true" ]; then
+            cmd="echo '${cmd}'"
         fi
+        (
+            set -x
+            eval "${cmd}"
+        )
     fi
 }
 
@@ -67,36 +75,34 @@ main() {
     glob="*.mkv"
     codec_type="subtitle"
 
-    getopt_args="$(getopt -a -o hdg:c: -l "help,dry-run,glob:,codec-type:" -- "$@")"
-    getopt_ret=$?
-    if [ "$getopt_ret" != "0" ]; then
+    getopt_args="$(getopt -a -o 'g:c:dh' -l 'glob:,codec:dry-run,help' -- "$@")"
+    if ! eval set -- "${getopt_args}"; then
         usage
     fi
 
-    eval set -- "$getopt_args"
     while true; do
         case "$1" in
-        -h | --help)
-            usage
-            ;;
-        -d | --dry-run)
-            dry_run=true
-            shift
+        -c | --codec)
+            codec_type="$2"
+            shift 2
             ;;
         -g | --glob)
             glob="$2"
             shift 2
             ;;
-        -c | --codec-type)
-            codec_type="$2"
-            shift 2
+        -d | --dry-run)
+            dry_run=true
+            shift
+            ;;
+        -h | --help)
+            usage
             ;;
         --)
             shift
             break
             ;;
         *)
-            echo "unexpected option: $1 - this should not happen."
+            echo "unexpected option: $1"
             usage
             ;;
         esac
