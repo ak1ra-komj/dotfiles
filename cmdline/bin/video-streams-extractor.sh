@@ -1,5 +1,5 @@
 #! /bin/bash
-# ffprobe -v quiet -print_format json -show_streams infile.mkv
+# ffprobe -v quiet -print_format json -show_streams video_file.mkv
 # ffmpeg ... -map input_file_index:stream_type_specifier:stream_index
 
 set -o errexit
@@ -14,30 +14,36 @@ require_command() {
 }
 
 usage() {
-    this="$(readlink -f "$0")"
+    this="$(basename $(readlink -f "$0"))"
 
-    cat <<_EOF
+    cat <<EOF
 Usage:
-    $this [--dry-run] [--glob <glob>] [--codec <codec_type>]
+    $this [--dry-run] [--codec 'subtitle|audio|video'] FILE [FILE [FILE...]]
 
 Options:
     -c, --codec         this is an 'egrep' regex pattern, indicate stream codec_type to select,
                         use 'audio|subtitle' to both select audio and subtitle streams, default is 'subtitle'.
-    -g, --glob          infile glob pattern for 'find ... -name \$glob', default is '*.mkv'
     -d, --dry-run       dry run mode, only print 'ffmpeg' commands
     -h, --help          print this help message
 
-_EOF
-    exit 1
+Examples:
+    # extract subtitles from input.mkv
+    $this -c subtitle input.mkv
+
+    # You can also use shell glob, for example,
+    # extract subtitles and audio from *.mkv and *.mp4 files with shell glob expansion
+    $this -c 'subtitle|audio' *.mkv *.mp4
+
+EOF
+    exit 0
 }
 
 extract_video_streams() {
     infile="$1"
-    codec_type="$2"
-    dry_run="$3"
+
     # ref: https://www.starkandwayne.com/blog/bash-for-loop-over-json-array-using-jq/
     readarray -t streams < <(
-        ffprobe -loglevel quiet -print_format json -show_streams "${infile}" | jq -c '.streams[]'
+        ffprobe -v quiet -print_format json -show_streams "${infile}" | jq -c '.streams[]'
     )
 
     map_args=""
@@ -56,14 +62,12 @@ extract_video_streams() {
     done
 
     if [ -n "${map_args}" ]; then
-        cmd='ffmpeg -nostdin -n -loglevel quiet -i "'"${infile}"'" '${map_args}''
+        cmd='ffmpeg -nostdin -n -v quiet -i "'"${infile}"'" '${map_args}''
+        echo "${cmd}"
         if [ "${dry_run}" = "true" ]; then
-            cmd="echo '${cmd}'"
+            return
         fi
-        (
-            set -x
-            eval "${cmd}"
-        )
+        eval "${cmd}"
     fi
 }
 
@@ -72,10 +76,9 @@ main() {
 
     # default options
     dry_run=false
-    glob="*.mkv"
     codec_type="subtitle"
 
-    getopt_args="$(getopt -a -o 'g:c:dh' -l 'glob:,codec:dry-run,help' -- "$@")"
+    getopt_args="$(getopt -a -o 'c:dh' -l 'codec:dry-run,help' -- "$@")"
     if ! eval set -- "${getopt_args}"; then
         usage
     fi
@@ -84,10 +87,6 @@ main() {
         case "$1" in
         -c | --codec)
             codec_type="$2"
-            shift 2
-            ;;
-        -g | --glob)
-            glob="$2"
             shift 2
             ;;
         -d | --dry-run)
@@ -108,8 +107,9 @@ main() {
         esac
     done
 
-    find . -type f -name "$glob" -print0 | while IFS= read -r -d '' file; do
-        extract_video_streams "$file" "$codec_type" "$dry_run"
+    readarray -t infiles < <(ls "$@")
+    for infile in "${infiles[@]}"; do
+        extract_video_streams "${infile}"
     done
 }
 
