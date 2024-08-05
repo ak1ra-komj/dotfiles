@@ -4,7 +4,9 @@
 # alias kc="source ~/bin/k8s-kubeconfig-selector.sh"
 
 # https://www.shellcheck.net/wiki/SC2207
-mapfile -t clusters < <(find ~/.kube -type f -name '*.conf' | sort)
+readarray -t clusters < <(
+    find ~/.kube -type f -name '*.conf' | sort
+)
 
 menu() {
     for idx in "${!clusters[@]}"; do

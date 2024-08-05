@@ -4,7 +4,7 @@
 # rename my obsidian-vault files with last modified date prefix
 
 main() {
-    mapfile -t src_files < <(
+    readarray -t src_files < <(
         find "$1" -type f -exec \
             realpath --strip --relative-to="$(pwd)" "{}" \; |
             grep -E '\.(md|txt|png|pdf|drawio|canvas)$'

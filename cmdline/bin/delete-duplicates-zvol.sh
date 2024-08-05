@@ -11,7 +11,7 @@ delete_duplicates_zvol() {
     test -d "/dev/${zpool_src}" || return
     test -d "/dev/${zpool_dest}" || return
 
-    mapfile -t zvol_from_zpool_src < <(
+    readarray -t zvol_from_zpool_src < <(
         zfs list -H -o name -r "${zpool_src}" |
             grep -E '/vm-[0-9]+' |
             sed 's%'"${zpool_src}"'%'"${zpool_dest}"'%'

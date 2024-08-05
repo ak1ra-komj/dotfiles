@@ -140,7 +140,7 @@ export PATH
 test -f ~/.bash_functions && . ~/.bash_functions
 
 test -d ~/.ssh/ssh-agent && {
-    mapfile -t ssh_agent < <(find ~/.ssh/ssh-agent -type f ! -name '*.pub')
+    readarray -t ssh_agent < <(find ~/.ssh/ssh-agent -type f ! -name '*.pub')
     if command -v keychain >/dev/null; then
         # keychain: re-use ssh-agent and/or gpg-agent between logins
         # apt install keychain

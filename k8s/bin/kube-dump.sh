@@ -43,8 +43,9 @@ kube_dump() {
     fi
 
     for api_resource in "${api_resources[@]}"; do
-        mapfile -t resources_with_prefix < \
-            <(kubectl --namespace "${namespace}" get "${api_resource}" --no-headers --ignore-not-found --output=name)
+        readarray -t resources_with_prefix < <(
+            kubectl --namespace "${namespace}" get "${api_resource}" --no-headers --ignore-not-found --output=name
+        )
         for resource in "${resources_with_prefix[@]}"; do
             resource_dir="${namespace}/${api_resource}"
             test -d "${resource_dir}" || mkdir -p "${resource_dir}"
@@ -74,12 +75,12 @@ main() {
         usage
     fi
 
-    # Prefer mapfile or read -a to split command output (or quote to avoid splitting).
+    # Prefer readarray or read -a to split command output (or quote to avoid splitting).
     # https://www.shellcheck.net/wiki/SC2207
-    mapfile -t api_resources < <(kubectl api-resources --namespaced --no-headers --output=name | grep -v 'events')
+    readarray -t api_resources < <(kubectl api-resources --namespaced --no-headers --output=name | grep -v 'events')
 
     if [ "$1" = "-A" ] || [ "$1" = "--all-namespaces" ]; then
-        mapfile -t namespaces < <(kubectl get namespaces --no-headers --output=name)
+        readarray -t namespaces < <(kubectl get namespaces --no-headers --output=name)
         shift 1
     else
         # Assigning an array to a string! Assign as array, or use * instead of @ to concatenate.

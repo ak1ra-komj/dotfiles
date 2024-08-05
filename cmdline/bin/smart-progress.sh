@@ -1,6 +1,8 @@
 #! /bin/bash
 
-mapfile -t blockdevices < <(lsblk --output=path --scsi --json | jq -r .blockdevices[].path | sort)
+readarray -t blockdevices < <(
+    lsblk --output=path --scsi --json | jq -r .blockdevices[].path | sort
+)
 
 selftest_log() {
     for dev in "${blockdevices[@]}"; do

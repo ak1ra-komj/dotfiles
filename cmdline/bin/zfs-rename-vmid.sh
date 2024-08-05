@@ -46,7 +46,9 @@ zfs_rename_vmid() {
     vm_disk_new_regex="${zpool_new}\1\2-${vmid_new}-\3"
 
     # exclude partition devices with '$' anchor
-    mapfile -t vm_disks < <(find "/dev/${zpool_old}" -type l | grep -E "${vm_disk_old_regex}$")
+    readarray -t vm_disks < <(
+        find "/dev/${zpool_old}" -type l | grep -E "${vm_disk_old_regex}$"
+    )
     for vm_disk in "${vm_disks[@]}"; do
         vm_disk_new="$(echo "${vm_disk}" |
             sed -E 's%'"${vm_disk_old_regex}"'%'"${vm_disk_new_regex}"'%')"
