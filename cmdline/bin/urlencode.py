@@ -25,9 +25,7 @@ def main():
     process = unquote if args.decode else quote
 
     try:
-        for line in fileinput.input(
-            files=args.files if len(args.files) > 0 else ("-",)
-        ):
+        for line in fileinput.input(files=args.files):
             print(process(line.rstrip()))
     except KeyboardInterrupt:
         pass
