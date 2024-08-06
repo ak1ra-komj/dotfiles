@@ -35,3 +35,7 @@ ansible: pipx  ## pipx install ansible
 setup: ansible  ## setup with ansible-playbook and stow
 	$(ANSIBLE_PLAYBOOK) playbook.yaml $(PLAYBOOK_ARGS) -e 'host=$(PLAYBOOK_HOST)' \
 		-e 'stow_dir=$(stow_dir)' -e 'stow_target=$(stow_target)'
+
+.PHONY: fix
+fix:  ## remove broken link in ~/bin
+	find $(HOME)/bin -xtype l -exec unlink "{}" \;
