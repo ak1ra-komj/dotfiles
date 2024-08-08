@@ -7,10 +7,13 @@
     stow_target: "{{ ansible_env.HOME }}"
     stow_packages:
       ["bash", "cmdline", "git", "vim"]
-    stow_keep_dirs:
+    stow_packages_dirs:
+      - "{{ ansible_env.HOME }}/.ssh"
       - "{{ ansible_env.HOME }}/bin"
+    stow_keep_dirs:
       - "{{ ansible_env.HOME }}/.config/git"
       - "{{ ansible_env.HOME }}/.ssh/config.d"
+      - "{{ ansible_env.HOME }}/bin"
 
   tasks:
     - name: ensure GNU Stow is installed
@@ -52,11 +55,36 @@
         recursive: true
         delete: true
         perms: true
-      notify: stow_handler
 
-  handlers:
-    - name: stow_handler
+    - name: stow install
       command: "stow --verbose --dir={{ stow_dir }} --target={{ stow_target }} {{ item }}"
       args:
         chdir: "{{ stow_dir }}"
       loop: "{{ stow_packages }}"
+
+    - name: find broken_links
+      ansible.builtin.command:
+        argv: ["find", "{{ dir }}", "-xtype", "l"]
+      loop: "{{ stow_packages_dirs }}"
+      loop_control:
+        loop_var: dir
+      changed_when: false
+      register: broken_links_return
+
+    - name: set broken_links
+      vars:
+        result_lines: "{{ result.stdout_lines }}"
+      ansible.builtin.set_fact:
+        broken_links: "{{ broken_links | default([]) + result_lines }}"
+      loop: "{{ broken_links_return.results }}"
+      loop_control:
+        loop_var: result
+
+    - name: unlink broken_links
+      when: len(broken_links) > 0
+      ansible.builtin.file:
+        path: "{{ broken_link }}"
+        state: absent
+      loop: "{{ broken_links }}"
+      loop_control:
+        loop_var: broken_link

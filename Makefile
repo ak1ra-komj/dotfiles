@@ -31,11 +31,7 @@ ansible: pipx  ## pipx install ansible
 		ln -sf $(HOME)/.local/pipx/venvs/ansible/bin/ansible* $(HOME)/.local/bin/; \
 	}
 
-.PHONY: setup
-setup: ansible  ## setup with ansible-playbook and stow
+.PHONY: install
+install: ansible  ## install basic stow packages with ansible and stow
 	$(ANSIBLE_PLAYBOOK) playbook.yaml $(PLAYBOOK_ARGS) -e 'host=$(PLAYBOOK_HOST)' \
 		-e 'stow_dir=$(stow_dir)' -e 'stow_target=$(stow_target)'
-
-.PHONY: fix
-fix:  ## remove broken link in ~/bin
-	find $(HOME)/bin -xtype l -exec unlink "{}" \;
