@@ -48,20 +48,6 @@
         state: touch
       loop: "{{ stow_keep_dirs }}"
 
-    - name: rsync dotfiles to stow_dir
-      ansible.builtin.synchronize:
-        src: "{{ dotfiles }}/"
-        dest: "{{ stow_dir }}/"
-        recursive: true
-        delete: true
-        perms: true
-
-    - name: stow install
-      command: "stow --verbose --dir={{ stow_dir }} --target={{ stow_target }} {{ item }}"
-      args:
-        chdir: "{{ stow_dir }}"
-      loop: "{{ stow_packages }}"
-
     - name: find broken_links
       ansible.builtin.command:
         argv: ["find", "{{ dir }}", "-xtype", "l"]
@@ -88,3 +74,17 @@
       loop: "{{ broken_links }}"
       loop_control:
         loop_var: broken_link
+
+    - name: rsync dotfiles to stow_dir
+      ansible.builtin.synchronize:
+        src: "{{ dotfiles }}/"
+        dest: "{{ stow_dir }}/"
+        recursive: true
+        delete: true
+        perms: true
+
+    - name: stow install
+      command: "stow --verbose --dir={{ stow_dir }} --target={{ stow_target }} {{ item }}"
+      args:
+        chdir: "{{ stow_dir }}"
+      loop: "{{ stow_packages }}"

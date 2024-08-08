@@ -5,7 +5,7 @@
 
 ## quick start
 
-现在你可以直接执行 `make setup` 快速开始, 参考 Makefile.
+现在你可以直接执行 `make install` 安装最基本的几个 packages, 参考 Makefile.
 
 ## git-config `includeIf`
 
