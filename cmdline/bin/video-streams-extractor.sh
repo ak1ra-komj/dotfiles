@@ -38,7 +38,7 @@ EOF
     exit 0
 }
 
-extract_video_streams() {
+video_streams_extractor() {
     infile="$1"
 
     # ref: https://www.starkandwayne.com/blog/bash-for-loop-over-json-array-using-jq/
@@ -109,7 +109,7 @@ main() {
 
     readarray -t infiles < <(ls "$@")
     for infile in "${infiles[@]}"; do
-        extract_video_streams "${infile}"
+        video_streams_extractor "${infile}"
     done
 }
 
