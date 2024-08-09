@@ -20,10 +20,11 @@ usage() {
 
     cat <<EOF
 Usage:
-    $this [--dry-run] FILE [FILE [FILE...]]
+    $this [--dry-run] [--sseof SECONDS] FILE [FILE [FILE...]]
 
 Options:
     -d, --dry-run       dry run mode, only print 'ffmpeg' commands
+    -s, --sseof         seconds from end to start extracting frames (default: 3)
     -h, --help          print this help message
 
 EOF
@@ -34,12 +35,33 @@ video_frames_extractor() {
     infile="$1"
     test -n "${sseof}" || sseof=3
 
-    cmd='ffmpeg -nostdin -n -v quiet -sseof -'"${sseof}"' -i "'"${infile}"'" -update 1 "'"${infile%.*}"'.last.png"'
+    temp_dir=$(mktemp -d)
+
+    cmd='ffmpeg -nostdin -n -v quiet -sseof -'"${sseof}"' -i "'"${infile}"'" -vf "select=not(mod(n\,1))" -vsync vfr "'"${temp_dir}"'/frame_%03d.png"'
     echo "${cmd}"
     if [ "${dry_run}" = "true" ]; then
+        rm -r "${temp_dir}"
         return
     fi
     eval "${cmd}"
+
+    last_non_blank_frame=""
+    readarray -t frames < <(find "${temp_dir}" -type f -name 'frame_*.png')
+    for frame in "${frames[@]}"; do
+        black_frame=$(ffmpeg -i "$frame" -vf "blackdetect=d=0:pix_th=0.1" -an -f null - 2>&1 | grep blackdetect || true)
+        if [ -z "$black_frame" ]; then
+            last_non_blank_frame="$frame"
+            break
+        fi
+    done
+
+    if [ -n "${last_non_blank_frame}" ]; then
+        cp "${last_non_blank_frame}" "${infile%.*}.last.png"
+    else
+        echo "No non-blank frame found in the last ${sseof} seconds of ${infile}"
+    fi
+
+    rm -r "${temp_dir}"
 }
 
 main() {
@@ -47,8 +69,9 @@ main() {
 
     # default options
     dry_run=false
+    sseof=3
 
-    getopt_args="$(getopt -a -o 'dh' -l 'dry-run,help' -- "$@")"
+    getopt_args="$(getopt -a -o 'dhs:' -l 'dry-run,help,sseof:' -- "$@")"
     if ! eval set -- "${getopt_args}"; then
         usage
     fi
@@ -58,6 +81,10 @@ main() {
         -d | --dry-run)
             dry_run=true
             shift
+            ;;
+        -s | --sseof)
+            sseof="$2"
+            shift 2
             ;;
         -h | --help)
             usage
