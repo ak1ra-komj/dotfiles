@@ -67,7 +67,7 @@
         loop_var: result
 
     - name: unlink broken_links
-      when: len(broken_links) > 0
+      when: broken_links | length > 0
       ansible.builtin.file:
         path: "{{ broken_link }}"
         state: absent
