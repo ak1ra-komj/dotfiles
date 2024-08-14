@@ -31,6 +31,25 @@ ansible: pipx  ## pipx install ansible
 		ln -sf $(HOME)/.local/pipx/venvs/ansible/bin/ansible* $(HOME)/.local/bin/; \
 	}
 
+.PHONY: jq
+jq:
+	command -v jq >/dev/null || { \
+		sudo apt-get update -y && \
+		sudo apt-get install -y jq; \
+	}
+
+DIFFT_VERSION ?= x86_64-unknown-linux-gnu
+.PHONY: difft
+difft: jq  ## install difft from github releases
+	command -v difft >/dev/null || { \
+		curl -s https://api.github.com/repos/Wilfred/difftastic/releases/latest | \
+			jq -r '.assets[].browser_download_url | select(test("$(DIFFT_VERSION)"))' | \
+			wget -q -i - && \
+		tar -xf difft-$(DIFFT_VERSION).tar.gz && \
+		sudo install -m 755 difft /usr/local/bin/difft && \
+		rm difft-$(DIFFT_VERSION).tar.gz difft; \
+	}
+
 .PHONY: install
 install: ansible  ## install basic stow packages with ansible and stow
 	$(ANSIBLE_PLAYBOOK) playbook.yaml $(PLAYBOOK_ARGS) \
