@@ -1,7 +1,0 @@
-#!/bin/sh
-
-command -v git-secrets >/dev/null 2>&1 || {
-    echo >&2 "\nThis repository is configured for git-secrets but 'git-secrets' was not found on your path. You can install it on 'https://github.com/awslabs/git-secrets'.\n"
-    exit 2
-}
-git secrets --pre_commit_hook -- "$@"
