@@ -99,12 +99,13 @@ if command -v dircolors >/dev/null; then
 fi
 
 # colored GCC warnings and errors
-GCC_COLORS='error=01;31:warning=01;35:note=01;36:caret=01;32:locus=01:quote=01'
-export GCC_COLORS
+#GCC_COLORS='error=01;31:warning=01;35:note=01;36:caret=01;32:locus=01:quote=01'
+#export GCC_COLORS
 
 # some more ls aliases
 alias ll='ls -l'
-alias la='ls -A'
+alias la='ls -lA'
+alias lh='ls -lhA'
 alias l='ls -CF'
 
 # Alias definitions.
