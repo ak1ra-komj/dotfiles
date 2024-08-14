@@ -147,15 +147,10 @@ http_download_curl() {
     source_url=$2
     header=$3
     if [ -z "$header" ]; then
-        code=$(curl -w '%{http_code}' -sL -o "$local_file" "$source_url")
+        curl -fsSL -o "$local_file" "$source_url"
     else
-        code=$(curl -w '%{http_code}' -sL -H "$header" -o "$local_file" "$source_url")
+        curl -fsSL -H "$header" -o "$local_file" "$source_url"
     fi
-    if [ "$code" != "200" ]; then
-        log_debug "http_download_curl received HTTP status $code"
-        return 1
-    fi
-    return 0
 }
 http_download_wget() {
     local_file=$1
@@ -296,6 +291,7 @@ uname_arch() {
     arch=$(uname -m)
     case $arch in
         x86_64) arch="amd64" ;;
+        i86pc) arch="amd64" ;;
         x86) arch="386" ;;
         i686) arch="386" ;;
         i386) arch="386" ;;
@@ -314,11 +310,13 @@ uname_os_check() {
         freebsd) return 0 ;;
         linux) return 0 ;;
         android) return 0 ;;
+        midnightbsd) return 0 ;;
         nacl) return 0 ;;
         netbsd) return 0 ;;
         openbsd) return 0 ;;
         plan9) return 0 ;;
         solaris) return 0 ;;
+        illumos) return 0 ;;
         windows) return 0 ;;
     esac
     log_crit "uname_os_check '$(uname -s)' got converted to '$os' which is not a GOOS value. Please file bug at https://github.com/client9/shlib"
@@ -331,6 +329,13 @@ uname_os() {
         mingw*) os="windows" ;;
         cygwin*) os="windows" ;;
     esac
+    if [ "$os" = "sunos" ]; then
+        if [ $(uname -o) == "illumos" ]; then
+            os="illumos"
+        else
+            os="solaris"
+        fi
+    fi
     echo "$os"
 }
 untar() {
