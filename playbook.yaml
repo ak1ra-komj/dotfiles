@@ -1,6 +1,6 @@
 ---
 - name: deploy dotfiles using GNU Stow
-  hosts: "{{ host | default('local') }}"
+  hosts: "{{ playbook_hosts | default('localhost') }}"
   vars:
     dotfiles: .
     stow_dir: "{{ ansible_env.HOME }}/.dotfiles"

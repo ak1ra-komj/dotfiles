@@ -3,7 +3,7 @@ BINDIR ?= $(HOME)/.local/bin
 ANSIBLE_PLAYBOOK ?= $(BINDIR)/ansible-playbook
 
 # ansible-playbook
-PLAYBOOK_HOST ?= local
+PLAYBOOK_HOSTS ?= localhost
 PLAYBOOK_ARGS ?= --inventory=ansible/.ansible/inventory
 
 # GNU Stow
@@ -33,5 +33,6 @@ ansible: pipx  ## pipx install ansible
 
 .PHONY: install
 install: ansible  ## install basic stow packages with ansible and stow
-	$(ANSIBLE_PLAYBOOK) playbook.yaml $(PLAYBOOK_ARGS) -e 'host=$(PLAYBOOK_HOST)' \
+	$(ANSIBLE_PLAYBOOK) playbook.yaml $(PLAYBOOK_ARGS) \
+		-e 'playbook_hosts=$(PLAYBOOK_HOSTS)' \
 		-e 'stow_dir=$(stow_dir)' -e 'stow_target=$(stow_target)'
