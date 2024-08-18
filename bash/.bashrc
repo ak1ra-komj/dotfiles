@@ -138,7 +138,7 @@ PATH=~/bin:~/.local/bin:$PATH
 export PATH
 
 # custom bash functions
-test -f ~/.bash_functions && . ~/.bash_functions
+# test -f ~/.bash_functions && . ~/.bash_functions
 
 test -d ~/.ssh/ssh-agent && {
     readarray -t ssh_agent < <(find ~/.ssh/ssh-agent -type f ! -name '*.pub')
