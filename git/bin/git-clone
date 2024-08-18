@@ -1,32 +1,31 @@
 #!/bin/sh
 
-code_dir="${HOME}/code"
-
-require_command() {
-    for c in "$@"; do
-        command -v "$c" >/dev/null || {
-            echo >&2 "required command '$c' is not installed, aborting..."
-            exit 1
-        }
-    done
-}
-
 git_clone() {
-    require_command git
-
     repo="$1"
     test -n "${repo}" || return
     repo_dir="${code_dir}/$(echo "${repo}" |
         sed -E -e 's%https?://%%' -e 's%^git@%%' -e 's%\.git$%%' -e 's%:%/%')"
 
     if [ -d "${repo_dir}" ]; then
-        echo "repo_dir: ${repo_dir} already exist, use 'git fetch' instead..."
+        echo "repo_dir: ${repo_dir} already exist, use 'git fetch --all' instead..." >&2
         cd "${repo_dir}" || return
         git fetch --all
         cd - >/dev/null 2>&1 || return
     else
-        git clone "${repo}" "${repo_dir}"
+        git clone "--origin=${origin}" "${repo}" "${repo_dir}"
     fi
 }
 
-git_clone "$@"
+main() {
+    code_dir="${HOME}/code"
+
+    origin="origin"
+    if [ "$1" = "-f" ] || [ "$1" = "--fork" ]; then
+        origin="upstream"
+        shift 1
+    fi
+
+    git_clone "$@"
+}
+
+main "$@"
