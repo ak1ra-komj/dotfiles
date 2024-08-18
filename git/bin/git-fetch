@@ -1,23 +1,13 @@
 #!/bin/bash
 
-require_command() {
-    for c in "$@"; do
-        command -v "$c" >/dev/null || {
-            echo >&2 "required command '$c' is not installed, aborting..."
-            exit 1
-        }
+git_fetch() {
+    find . -type d -name '.git' -print0 | while IFS= read -r -d '' gitdir; do
+        repo="$(dirname "$(realpath -s "${gitdir}")")"
+        test -d "${repo}" || {
+            cd "${repo}" || return
+            git fetch --all
+            cd - || return
     done
 }
 
-git_fetch() {
-    require_command git parallel
-
-    repo_dir="$(dirname "$(realpath -s "$1")")"
-    cd "$repo_dir" || return
-    git fetch
-    cd - >/dev/null 2>&1 || return
-}
-
-export -f git_fetch
-find . -type d -name '.git' -print0 |
-    parallel -0 git_fetch "{}"
+git_fetch "$@"
