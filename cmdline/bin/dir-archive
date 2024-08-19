@@ -6,8 +6,6 @@ import glob
 import argparse
 import concurrent.futures
 
-from py7zr import pack_7zarchive, unpack_7zarchive
-
 
 def archive_directory(dir_name, format):
     """Archive the directory based on the format type."""
@@ -35,9 +33,14 @@ def dir_archive(format, max_workers):
 
 
 def main():
-    # Register file format at first
-    shutil.register_archive_format("7z", function=pack_7zarchive, description="7zip archive")
-    shutil.register_unpack_format("7z", extensions=[".7z"], function=unpack_7zarchive)
+    try:
+        # Register 7z format if py7zr is installed
+        # pip3 install -U py7zr || apt install python3-py7zr
+        from py7zr import pack_7zarchive, unpack_7zarchive
+        shutil.register_archive_format("7z", function=pack_7zarchive, description="7zip archive")
+        shutil.register_unpack_format("7z", extensions=[".7z"], function=unpack_7zarchive)
+    except ImportError:
+        pass
 
     # Argument parsing
     parser = argparse.ArgumentParser(
