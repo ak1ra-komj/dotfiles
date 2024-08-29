@@ -1,10 +1,25 @@
 # shellcheck shell=bash
 
 alias fd="find . -wholename"
-alias gr="grep -Er"
+alias rg="grep -Er"
 
 # git
 alias g="git status"
+
+# wget
+# -e command, --execute=command, Execute command as if it were a part of .wgetrc.
+#    robots, Setting this to off makes Wget not download /robots.txt.
+# -i file, --input-file=file, Read URLs from a local or external file.
+# -B, --base=URL, Resolves relative links using URL as the point of reference
+# -c, --continue, Continue getting a partially-downloaded file.
+# -r, --recursive, Turn on recursive retrieving. The default maximum depth is 5 (-l depth, --level=depth).
+# -k, --convert-links, After the download is complete, convert the links in the document to make them suitable for local viewing.
+# -x, --force-directories, The opposite of -nd, create a hierarchy of directories, even if one would not have been created otherwise.
+# -np, --no-parent, Do not ever ascend to the parent directory when retrieving recursively
+# -nH, --no-host-directories, Disable generation of host-prefixed directories.
+# -N, --timestamping, Turn on time-stamping.
+# -m, --mirror, Turn on options suitable for mirroring, equivalent to "-r -N -l inf --no-remove-listing"
+alias crawler="wget -c -r -k -x -np -e robots=off"
 
 # tmux
 alias tm="tmux attach || tmux"
