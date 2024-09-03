@@ -1,4 +1,7 @@
 
+# yt-dlp: https://github.com/yt-dlp/yt-dlp
+# aria2c: https://git.q3aql.dev/q3aql/aria2-static-builds
+
 param(
     [Parameter(ValueFromRemainingArguments=$true)]
     $args
