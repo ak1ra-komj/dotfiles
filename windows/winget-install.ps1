@@ -1,5 +1,5 @@
 
-$packages_url = "https://raw.githubusercontent.com/ak1ra-komj/dotfiles/master/winget/winget-packages.txt"
+$packages_url = "https://raw.githubusercontent.com/ak1ra-komj/dotfiles/master/windows/winget-packages.txt"
 $packages = (Invoke-RestMethod $packages_url) -split "`n"
 
 foreach ($package in $packages) {
