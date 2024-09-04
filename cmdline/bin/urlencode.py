@@ -28,6 +28,7 @@ def main():
         for line in fileinput.input(files=args.files):
             print(process(line.rstrip()))
     except KeyboardInterrupt:
+        print()
         pass
 
 
