@@ -9,20 +9,18 @@ from netaddr import IPSet, IPNetwork
 
 
 def digit_str_zfill(digit_str: str, group):
-    try:
-        zfill = (len(digit_str) + group - 1) // group * group
-        zfill_str = " ".join(
-            digit_str.zfill(zfill)[i : i + group]
-            for i in range(0, len(digit_str), group)
-        )
-    except ValueError:
-        zfill_str = digit_str
-    return zfill_str
+    zfill = (len(digit_str) + group - 1) // group * group
+    return " ".join(
+        digit_str.zfill(zfill)[i : i + group] for i in range(0, len(digit_str), group)
+    )
 
 
 def digit_to_binary(digit_str: str, base=16, group=4):
-    binary_str = bin(int(digit_str, base)).removeprefix("0b")
-    return digit_str_zfill(binary_str, group)
+    try:
+        binary_str = bin(int(digit_str, base)).removeprefix("0b")
+        return digit_str_zfill(binary_str, group)
+    except ValueError:
+        return digit_str
 
 
 def ip_network_to_binary(ip_network: IPNetwork):
