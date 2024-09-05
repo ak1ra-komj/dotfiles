@@ -29,7 +29,6 @@ def main():
             print(process(line.rstrip()))
     except KeyboardInterrupt:
         print()
-        pass
 
 
 if __name__ == "__main__":

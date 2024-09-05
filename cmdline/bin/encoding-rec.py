@@ -44,7 +44,6 @@ def main():
             encoding_rec(line.rstrip())
     except KeyboardInterrupt:
         print()
-        pass
 
 
 if __name__ == "__main__":
