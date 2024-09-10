@@ -42,21 +42,41 @@ def ip_network_zfill(ip_network: IPNetwork):
 
 
 def merge_ip_ranges(ip_range_files):
-    ipset = IPSet()
+    ipv4_set, ipv6_set = IPSet(), IPSet()
     try:
         # Read from input sources (either files or stdin)
         for ip_range in fileinput.input(files=ip_range_files):
             ip_range = ip_range.strip()
-            if ip_range:  # Skip empty ip_ranges
-                ipset.add(IPNetwork(ip_range))
+            if not ip_range:
+                continue
+            ip_network = IPNetwork(ip_range)
+            if ip_network.version == 4:
+                ipv4_set.add(ip_network)
+            elif ip_network.version == 6:
+                ipv6_set.add(ip_network)
     except KeyboardInterrupt:
         print()
-    return ipset
+
+    return ipv4_set, ipv6_set
 
 
-def main():
+def parse_args():
     parser = argparse.ArgumentParser(
         description="merge IP ranges from files or standard input."
+    )
+    parser.add_argument(
+        "-4",
+        "--ipv4",
+        action="store_true",
+        default=False,
+        help="only parse IPv4 addresses",
+    )
+    parser.add_argument(
+        "-6",
+        "--ipv6",
+        action="store_true",
+        default=False,
+        help="only parse IPv6 addresses",
     )
     parser.add_argument(
         "-b",
@@ -78,9 +98,21 @@ def main():
         metavar="FILE",
         help="input files containing IP ranges. If not specified, reads from stdin.",
     )
-    args = parser.parse_args()
+    return parser.parse_args()
 
-    for cidr in merge_ip_ranges(args.files).iter_cidrs():
+
+def main():
+    args = parse_args()
+
+    ipv4_set, ipv6_set = merge_ip_ranges(args.files)
+    if args.ipv4:
+        merged_ranges = ipv4_set
+    elif args.ipv6:
+        merged_ranges = ipv6_set
+    else:
+        merged_ranges = ipv4_set.union(ipv6_set)
+
+    for cidr in merged_ranges.iter_cidrs():
         if args.binary:
             print(ip_network_to_binary(cidr))
         elif args.zfill:
