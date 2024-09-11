@@ -69,14 +69,14 @@ def parse_args():
         "--ipv4",
         action="store_true",
         default=False,
-        help="only parse IPv4 addresses",
+        help="output only IPv4 addresses",
     )
     parser.add_argument(
         "-6",
         "--ipv6",
         action="store_true",
         default=False,
-        help="only parse IPv6 addresses",
+        help="output only IPv6 addresses",
     )
     parser.add_argument(
         "-b",
@@ -96,7 +96,7 @@ def parse_args():
         "files",
         nargs="*",
         metavar="FILE",
-        help="input files containing IP ranges. If not specified, reads from stdin.",
+        help="input files containing IP ranges, if not specified, reads from stdin.",
     )
     return parser.parse_args()
 
