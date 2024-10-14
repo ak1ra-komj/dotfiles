@@ -20,11 +20,19 @@ get_smartctl_info() {
     done
 }
 
-get_self_test_status() {
-    printf "\n===== self_test_status =====\n"
+get_selftest_log() {
+    printf "\n===== get_selftest_log =====\n"
     for disk in "${disks[@]}"; do
-        self_test_status="$(smartctl -j -c "${disk}" | jq -r .ata_smart_data.self_test.status.string)"
-        printf "%s\t%s\n" "${disk}" "${self_test_status}"
+        printf "===== ${disk} =====\n"
+        smartctl --log=selftest "${disk}"
+    done
+}
+
+get_selftest_status() {
+    printf "\n===== get_selftest_status =====\n"
+    for disk in "${disks[@]}"; do
+        selftest_status="$(smartctl -j -c "${disk}" | jq -r .ata_smart_data.self_test.status.string)"
+        printf "%s\t%s\n" "${disk}" "${selftest_status}"
     done
 }
 
@@ -32,7 +40,9 @@ main() {
     readarray -t disks < <(find /dev/disk/by-id | awk '/\/ata-/ && !/-part[0-9]+/')
 
     get_smartctl_info
-    get_self_test_status
+
+    get_selftest_log
+    get_selftest_status
 }
 
 require_command smartctl
