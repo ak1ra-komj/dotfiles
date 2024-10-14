@@ -32,7 +32,7 @@ get_selftest_status() {
     printf "\n===== get_selftest_status =====\n"
     for disk in "${disks[@]}"; do
         selftest_status="$(smartctl -j -c "${disk}" | jq -r .ata_smart_data.self_test.status.string)"
-        printf "%s\t%s\n" "${disk}" "${selftest_status}"
+        printf "%-60s %s\n" "${disk}" "${selftest_status}"
     done
 }
 
