@@ -37,7 +37,13 @@ get_selftest_status() {
 }
 
 main() {
-    readarray -t disks < <(find /dev/disk/by-id | awk '/\/ata-/ && !/-part[0-9]+/')
+    pattern="${1}"
+    test -n "${pattern}" || pattern=".*"
+
+    readarray -t disks < <(
+        find /dev/disk/by-id -type l |
+            awk -v pattern="${pattern}" '/\/ata-/ && !/-part[0-9]+$/ && $0 ~ pattern'
+    )
 
     get_smartctl_info
 
