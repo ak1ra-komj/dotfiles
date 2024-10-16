@@ -5,6 +5,8 @@
 
 set -o errexit -o nounset -o pipefail
 
+declare -a disks
+
 require_command() {
     for c in "$@"; do
         command -v "$c" >/dev/null || {
@@ -15,13 +17,6 @@ require_command() {
 }
 
 get_smartctl_info() {
-    declare -a disks
-
-    readarray -t disks < <(
-        find /dev/disk/by-id -type l |
-            awk -v pattern="${pattern}" '/\/ata-/ && !/-part[0-9]+$/ && $0 ~ pattern' | sort
-    )
-
     printf_format="%-32s %s\n"
     for disk in "${disks[@]}"; do
         printf "====== %s ======\n" "${disk}"
@@ -63,10 +58,15 @@ get_smartctl_info() {
 }
 
 main() {
-    pattern=""
+    pattern=".*"
     if [[ "$#" -ge 1 ]]; then
         pattern="$1"
     fi
+
+    readarray -t disks < <(
+        find /dev/disk/by-id -type l |
+            awk -v pattern="${pattern}" '/\/ata-/ && !/-part[0-9]+$/ && $0 ~ pattern' | sort
+    )
 
     get_smartctl_info
 }
