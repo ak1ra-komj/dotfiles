@@ -6,6 +6,27 @@
 set -o errexit -o nounset -o pipefail
 
 declare -a disks
+declare -a smartctl_error_msgs=(
+    "Bit 0: Command line did not parse."
+    "Bit 1: Device open failed, device did not return an IDENTIFY DEVICE structure, or device is in a low-power mode (see '-n' option above)."
+    "Bit 2: Some SMART or other ATA command to the disk failed, or there was a checksum error in a SMART data structure (see '-b' option above)."
+    "Bit 3: SMART status check returned 'DISK FAILING'."
+    "Bit 4: We found prefail Attributes <= threshold."
+    "Bit 5: SMART status check returned 'DISK OK' but we found that some (usage or prefail) Attributes have been <= threshold at some time in the past."
+    "Bit 6: The device error log contains records of errors."
+    "Bit 7: The device self-test log contains records of errors. [ATA only] Failed self-tests outdated by a newer successful extended self-test are ignored."
+)
+
+check_smartctl_error_msgs() {
+    # https://linux.die.net/man/8/smartctl
+    # The exit status of smartctl are defined by a bitmask
+    status="$1"
+    for ((i = 0; i < 8; i++)); do
+        if [ "$((status & 2 ** i && 1))" -eq 1 ]; then
+            printf "%s\n" "${smartctl_error_msgs[$i]}" 1>&2
+        fi
+    done
+}
 
 require_command() {
     for c in "$@"; do
@@ -17,41 +38,47 @@ require_command() {
 }
 
 get_smartctl_info() {
-    printf_format="%-32s %s\n"
     for disk in "${disks[@]}"; do
         printf "====== %s ======\n" "${disk}"
-        disk_smart="$(smartctl --all --json "${disk}" | jq -c .)"
+
+        status=0
+        disk_smart="$(smartctl --all --json "${disk}" | jq -c .)" || status="$?"
+        check_smartctl_error_msgs "${status}"
+        if [ "${status}" -ne 0 ]; then
+            printf "\n"
+            continue
+        fi
 
         model_family="$(jq -r .model_family <<<"${disk_smart}")"
-        printf "${printf_format}" "model_family" "${model_family}"
+        printf "%-32s %s\n" "model_family" "${model_family}"
 
         model_name="$(jq -r .model_name <<<"${disk_smart}")"
-        printf "${printf_format}" "model_name" "${model_name}"
+        printf "%-32s %s\n" "model_name" "${model_name}"
 
         user_capacity="$(jq -r .user_capacity.bytes <<<"${disk_smart}")"
         user_capacity_gib="$(bc <<<"scale=2; ${user_capacity}/2^30")"
-        printf "${printf_format}" "user_capacity" "${user_capacity_gib} GiB"
+        printf "%-32s %s\n" "user_capacity" "${user_capacity_gib} GiB"
 
         rotation_rate="$(jq -r .rotation_rate <<<"${disk_smart}")"
-        printf "${printf_format}" "rotation_rate" "${rotation_rate}"
+        printf "%-32s %s\n" "rotation_rate" "${rotation_rate}"
 
         interface_speed="$(jq -r .interface_speed.current.string <<<"${disk_smart}")"
-        printf "${printf_format}" "interface_speed" "${interface_speed}"
+        printf "%-32s %s\n" "interface_speed" "${interface_speed}"
 
         power_on_time="$(jq -r .power_on_time.hours <<<"${disk_smart}")"
-        printf "${printf_format}" "power_on_time" "${power_on_time}"
+        printf "%-32s %s\n" "power_on_time" "${power_on_time}"
 
         power_cycle_count="$(jq -r .power_cycle_count <<<"${disk_smart}")"
-        printf "${printf_format}" "power_cycle_count" "${power_cycle_count}"
+        printf "%-32s %s\n" "power_cycle_count" "${power_cycle_count}"
 
         ata_smart_error_log="$(jq -r .ata_smart_error_log.summary.count <<<"${disk_smart}")"
-        printf "${printf_format}" "ata_smart_error_log" "${ata_smart_error_log}"
+        printf "%-32s %s\n" "ata_smart_error_log" "${ata_smart_error_log}"
 
         self_test_status="$(jq -r .ata_smart_data.self_test.status.string <<<"${disk_smart}")"
-        printf "${printf_format}" "self_test_status" "${self_test_status}"
+        printf "%-32s %s\n" "self_test_status" "${self_test_status}"
 
         temperature="$(jq -r .temperature.current <<<"${disk_smart}")"
-        printf "${printf_format}" "temperature" "${temperature}"
+        printf "%-32s %s\n" "temperature" "${temperature}"
 
         printf "\n"
     done
