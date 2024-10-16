@@ -1,6 +1,9 @@
 #!/bin/bash
 # author: ak1ra
-# date: 2024-10-14
+# date: 2024-10-16
+# extract important fields from smartctl --all output
+
+set -o errexit -o nounset -o pipefail
 
 require_command() {
     for c in "$@"; do
@@ -12,45 +15,62 @@ require_command() {
 }
 
 get_smartctl_info() {
-    printf "===== SMART Attributes Data =====\n"
-    for disk in "${disks[@]}"; do
-        printf "===== ${disk} =====\n"
-        smartctl -a "${disk}" |
-            grep -E 'Start_Stop_Count|Power_Cycle_Count|Power_On_Hours|Temperature_Celsius'
-    done
-}
+    declare -a disks
 
-get_selftest_log() {
-    printf "\n===== get_selftest_log =====\n"
-    for disk in "${disks[@]}"; do
-        printf "===== ${disk} =====\n"
-        smartctl --log=selftest "${disk}"
-    done
-}
+    readarray -t disks < <(
+        find /dev/disk/by-id -type l |
+            awk -v pattern="${pattern}" '/\/ata-/ && !/-part[0-9]+$/ && $0 ~ pattern' | sort
+    )
 
-get_selftest_status() {
-    printf "\n===== get_selftest_status =====\n"
+    printf_format="%-32s %s\n"
     for disk in "${disks[@]}"; do
-        selftest_status="$(smartctl -j -c "${disk}" | jq -r .ata_smart_data.self_test.status.string)"
-        printf "%-60s %s\n" "${disk}" "${selftest_status}"
+        printf "====== %s ======\n" "${disk}"
+        disk_smart="$(smartctl --all --json "${disk}" | jq -c .)"
+
+        model_family="$(jq -r .model_family <<<"${disk_smart}")"
+        printf "${printf_format}" "model_family" "${model_family}"
+
+        model_name="$(jq -r .model_name <<<"${disk_smart}")"
+        printf "${printf_format}" "model_name" "${model_name}"
+
+        user_capacity="$(jq -r .user_capacity.bytes <<<"${disk_smart}")"
+        user_capacity_gib="$(bc <<<"scale=2; ${user_capacity}/2^30")"
+        printf "${printf_format}" "user_capacity" "${user_capacity_gib} GiB"
+
+        rotation_rate="$(jq -r .rotation_rate <<<"${disk_smart}")"
+        printf "${printf_format}" "rotation_rate" "${rotation_rate}"
+
+        interface_speed="$(jq -r .interface_speed.current.string <<<"${disk_smart}")"
+        printf "${printf_format}" "interface_speed" "${interface_speed}"
+
+        power_on_time="$(jq -r .power_on_time.hours <<<"${disk_smart}")"
+        printf "${printf_format}" "power_on_time" "${power_on_time}"
+
+        power_cycle_count="$(jq -r .power_cycle_count <<<"${disk_smart}")"
+        printf "${printf_format}" "power_cycle_count" "${power_cycle_count}"
+
+        ata_smart_error_log="$(jq -r .ata_smart_error_log.summary.count <<<"${disk_smart}")"
+        printf "${printf_format}" "ata_smart_error_log" "${ata_smart_error_log}"
+
+        self_test_status="$(jq -r .ata_smart_data.self_test.status.string <<<"${disk_smart}")"
+        printf "${printf_format}" "self_test_status" "${self_test_status}"
+
+        temperature="$(jq -r .temperature.current <<<"${disk_smart}")"
+        printf "${printf_format}" "temperature" "${temperature}"
+
+        printf "\n"
     done
 }
 
 main() {
-    pattern="${1}"
-    test -n "${pattern}" || pattern=".*"
-
-    readarray -t disks < <(
-        find /dev/disk/by-id -type l |
-            awk -v pattern="${pattern}" '/\/ata-/ && !/-part[0-9]+$/ && $0 ~ pattern'
-    )
+    pattern=""
+    if [[ "$#" -ge 1 ]]; then
+        pattern="$1"
+    fi
 
     get_smartctl_info
-
-    get_selftest_log
-    get_selftest_status
 }
 
-require_command smartctl
+require_command bc jq smartctl
 
 main "$@"
