@@ -6,7 +6,7 @@
     stow_dir: "{{ ansible_env.HOME }}/.dotfiles"
     stow_target: "{{ ansible_env.HOME }}"
     stow_packages:
-      ["bash", "cmdline", "git", "vim"]
+      ["bash", "git", "vim", "dotsh", "dotpy"]
     stow_packages_dirs:
       - "{{ ansible_env.HOME }}/.ssh"
       - "{{ ansible_env.HOME }}/bin"
@@ -76,6 +76,7 @@
         loop_var: broken_link
 
     - name: rsync dotfiles to stow_dir
+      when: ansible_host != "localhost"
       ansible.builtin.synchronize:
         src: "{{ dotfiles }}/"
         dest: "{{ stow_dir }}/"
