@@ -11,15 +11,15 @@ stow_dir ?= $(HOME)/.dotfiles
 stow_target ?= $(HOME)
 
 # package manager
-PKG ?= sudo apt-get
+APT ?= sudo apt-get
 ifeq ($(shell id -u), 0)
-	PKG = apt-get
+	APT = apt-get
 endif
 
-define install_package
+define apt_install
 	command -v $(1) >/dev/null || { \
-		$(PKG) update -y && \
-		$(PKG) install $(1); \
+		$(APT) update -y && \
+		$(APT) install -y --no-install-suggests --no-install-recommends $(1); \
 	}
 endef
 
@@ -32,11 +32,11 @@ help:  ## show this help message
 
 .PHONY: jq
 jq:
-	$(call install_package,jq)
+	$(call apt_install,jq)
 
 .PHONY: pipx
 pipx:
-	$(call install_package,pipx)
+	$(call apt_install,pipx)
 
 .PHONY: ansible
 ansible: pipx  ## pipx install ansible
