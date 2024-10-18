@@ -10,6 +10,19 @@ PLAYBOOK_ARGS ?= --inventory=ansible/.ansible/inventory
 stow_dir ?= $(HOME)/.dotfiles
 stow_target ?= $(HOME)
 
+# package manager
+PKG ?= sudo apt-get
+ifeq ($(shell id -u), 0)
+	PKG = apt-get
+endif
+
+define install_package
+	command -v $(1) >/dev/null || { \
+		$(PKG) update -y && \
+		$(PKG) install $(1); \
+	}
+endef
+
 .DEFAULT_GOAL=help
 .PHONY: help
 help:  ## show this help message
@@ -17,25 +30,19 @@ help:  ## show this help message
 		printf "\033[36m%-10s\033[0m %s\n", $$1, substr($$0, index($$0,$$3)) \
 	}' $(MAKEFILE_LIST)
 
+.PHONY: jq
+jq:
+	$(call install_package,jq)
+
 .PHONY: pipx
 pipx:
-	command -v pipx >/dev/null || { \
-		sudo apt-get update -y && \
-		sudo apt-get install -y pipx; \
-	}
+	$(call install_package,pipx)
 
 .PHONY: ansible
 ansible: pipx  ## pipx install ansible
 	command -v ansible >/dev/null || { \
 		pipx install ansible && \
 		ln -sf $(HOME)/.local/pipx/venvs/ansible/bin/ansible* $(HOME)/.local/bin/; \
-	}
-
-.PHONY: jq
-jq:
-	command -v jq >/dev/null || { \
-		sudo apt-get update -y && \
-		sudo apt-get install -y jq; \
 	}
 
 DIFFT_VERSION ?= x86_64-unknown-linux-gnu
