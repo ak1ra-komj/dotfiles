@@ -55,14 +55,14 @@
       loop_control:
         loop_var: dir
       changed_when: false
-      register: broken_links_return
+      register: broken_links_register
 
     - name: set broken_links
       vars:
         result_lines: "{{ result.stdout_lines }}"
       ansible.builtin.set_fact:
         broken_links: "{{ broken_links | default([]) + result_lines }}"
-      loop: "{{ broken_links_return.results }}"
+      loop: "{{ broken_links_register.results }}"
       loop_control:
         loop_var: result
 

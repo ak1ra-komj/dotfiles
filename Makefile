@@ -3,7 +3,7 @@ BINDIR ?= $(HOME)/.local/bin
 ANSIBLE_PLAYBOOK ?= $(BINDIR)/ansible-playbook
 
 # ansible-playbook
-PLAYBOOK_HOSTS ?= localhost
+hosts ?= localhost
 PLAYBOOK_ARGS ?= --inventory=ansible/.ansible/inventory
 
 # GNU Stow
@@ -60,5 +60,5 @@ difft: jq  ## install difft from github releases
 .PHONY: install
 install: ansible  ## install basic stow packages with ansible and stow
 	$(ANSIBLE_PLAYBOOK) playbook.yaml $(PLAYBOOK_ARGS) \
-		-e 'playbook_hosts=$(PLAYBOOK_HOSTS)' \
+		-e 'playbook_hosts=$(hosts)' \
 		-e 'stow_dir=$(stow_dir)' -e 'stow_target=$(stow_target)'
