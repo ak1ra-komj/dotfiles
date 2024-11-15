@@ -24,19 +24,14 @@ zfs_release() {
     [[ "$#" -eq 1 ]] || usage
     rootfs="$1"
 
-    readarray -t filesystems < <(zfs list -Hr -oname "${rootfs}")
-    for filesystem in "${filesystems[@]}"; do
-
-        readarray -t snapshots < <(zfs list -t snapshot -H -oname "${filesystem}")
-        for snapshot in "${snapshots[@]}"; do
-
-            readarray -t holds < <(zfs holds -H "${snapshot}" | awk '{print $2}')
-            for hold in "${holds[@]}"; do
-                (
-                    set -x
-                    zfs release "${hold}" "${snapshot}"
-                )
-            done
+    readarray -t snapshots < <(zfs list -t snapshot -Hr -oname "${rootfs}")
+    for snapshot in "${snapshots[@]}"; do
+        readarray -t holds < <(zfs holds -H "${snapshot}" | awk '{print $2}')
+        for hold in "${holds[@]}"; do
+            (
+                set -x
+                zfs release "${hold}" "${snapshot}"
+            )
         done
     done
 }
