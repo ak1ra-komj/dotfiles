@@ -2,7 +2,7 @@
 # Delete zvols in the destination zpool that are duplicates of the source zpool
 # ./delete_duplicates_zvol.sh data0 tank
 
-set -o errexit
+set -o errexit -o nounset -o pipefail
 
 delete_duplicates_zvol() {
     zpool_src="$1"
