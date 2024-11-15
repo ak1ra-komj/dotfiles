@@ -187,7 +187,7 @@ test -d "${NVM_DIR}" && {
     test -s "${NVM_DIR}/bash_completion" && . "${NVM_DIR}/bash_completion"
 }
 
-# awscli: https://github.com/aws/aws-cli/tree/v2
+# https://github.com/aws/aws-cli/tree/v2
 command -v aws >/dev/null && {
     if command -v aws_completer >/dev/null; then
         complete -C aws_completer aws
@@ -196,6 +196,14 @@ command -v aws >/dev/null && {
         complete -C /usr/libexec/aws_completer aws
     fi
 }
+
+# gcloud, google-cloud-cli
+# https://cloud.google.com/sdk/docs/install
+# /etc/bash_completion.d/gcloud -> /usr/lib/google-cloud-sdk/completion.bash.inc
+
+# terraform
+# https://www.hashicorp.com/official-packaging-guide
+command -v terraform >/dev/null && complete -C /usr/bin/terraform terraform
 
 # tccli: https://github.com/TencentCloud/tencentcloud-cli
 command -v tccli >/dev/null && {
@@ -207,6 +215,5 @@ command -v tccli >/dev/null && {
     fi
 }
 
-# gcloud: https://cloud.google.com/sdk/docs/install
-
-# aliyun-cli: https://github.com/aliyun/aliyun-cli
+# aliyun-cli
+# https://github.com/aliyun/aliyun-cli
