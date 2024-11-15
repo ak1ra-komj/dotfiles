@@ -5,16 +5,18 @@
 set -o errexit -o nounset -o pipefail
 
 usage() {
+    this="$(basename "$(readlink -f "$0")")"
     cat <<EOF
 Usage:
-    zfs-release.sh <rootfs>
+    ${this} <rootfs>
 
-    exec 'zfs release' command on all snapshots on rootfs recursively.
+    exec 'zfs release' command on all snapshots from rootfs recursively,
+    don't use this if you don't know what you are doing,
     rootfs can not endswith slash (/).
 
 Examples:
-    zfs-release.sh main
-    zfs-release.sh main/zrepl/sink
+    ${this} main
+    ${this} main/zrepl/sink
 
 EOF
     exit 0
