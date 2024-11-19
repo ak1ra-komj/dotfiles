@@ -1,6 +1,7 @@
 #!/bin/sh
 
 PVE_BACKUP_SET="
+    /etc/apt/
     /etc/pve/
     /etc/lvm/
     /etc/modprobe.d/
