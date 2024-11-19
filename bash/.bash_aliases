@@ -13,7 +13,7 @@ alias g="git status"
 # %cr, committer date, relative
 # %ci, committer date, ISO 8601-like format; %cI, committer date, strict ISO 8601 format
 # %an, author name; %aN, author name (respecting .mailmap, see git-shortlog(1) or git-blame(1))
-alias gl="git log --abbrev-commit --color --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%ci) %Cblue%an <%ae>%Creset'"
+alias gl="git log --abbrev-commit --graph --pretty=tformat:'%Cred%h%Creset -%C(auto)%d%Creset %s %Cgreen(%ci) %Cblue%an <%ae>%Creset'"
 
 # wget
 # -e command, --execute=command, Execute command as if it were a part of .wgetrc.
