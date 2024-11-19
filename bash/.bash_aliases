@@ -5,6 +5,15 @@ alias rg="grep -Er"
 
 # git
 alias g="git status"
+# PRETTY FORMATS:
+# colors: %Cred, %Cgreen, %Cblue, %Creset
+# %h, abbreviated commit hash
+# %d, ref names, like the --decorate option of git-log(1)
+# %s, subject
+# %cr, committer date, relative
+# %ci, committer date, ISO 8601-like format; %cI, committer date, strict ISO 8601 format
+# %an, author name; %aN, author name (respecting .mailmap, see git-shortlog(1) or git-blame(1))
+alias gl="git log --abbrev-commit --color --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%ci) %Cblue%an <%ae>%Creset'"
 
 # wget
 # -e command, --execute=command, Execute command as if it were a part of .wgetrc.
@@ -45,6 +54,6 @@ command -v helm >/dev/null && {
     alias hdd='test -f Chart.yaml && helm install --generate-name --debug --dry-run .'
 }
 
-test -L ~/bin/k8s-kubeconfig-selector.sh && {
-    alias kc="source ~/bin/k8s-kubeconfig-selector.sh"
+test -L ~/bin/kube-config-selector.sh && {
+    alias kc="source ~/bin/kube-config-selector.sh"
 }
