@@ -31,7 +31,7 @@ check_smartctl_error_msgs() {
 require_command() {
     for c in "$@"; do
         command -v "$c" >/dev/null || {
-            echo >&2 "required command '$c' is not installed, aborting..."
+            printf "required command '%s' is not installed, aborting...\n" "$c" 1>&2
             exit 1
         }
     done
