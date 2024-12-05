@@ -1,4 +1,5 @@
 #! /usr/bin/env python3
+# coding: utf-8
 # A helper script to convert vol.moe's mobi files to 7zip archives.
 # python3 -m pip install mobi py7zr
 
@@ -6,14 +7,18 @@ import argparse
 import logging
 import os
 import shutil
-import sys
 import time
-from concurrent.futures import ProcessPoolExecutor
-from itertools import repeat
+import concurrent.futures
 from pathlib import Path
 
 import mobi
-from py7zr import pack_7zarchive, unpack_7zarchive
+
+
+logging.basicConfig(
+    format="[%(asctime)s][%(name)s][%(levelname)s] %(message)s", level=logging.DEBUG
+)
+logger = logging.getLogger(__name__)
+
 
 format_ext = {
     "7zip": ".7z",
@@ -21,29 +26,11 @@ format_ext = {
     "tar": ".tar",
     "gztar": ".tar.gz",
     "bztar": ".tar.bz2",
-    "xztar": ".tar.xz"
+    "xztar": ".tar.xz",
 }
 
-def init_logger(name, level=logging.INFO):
-    format = "[%(asctime)s][%(levelname) 7s] %(name)s: %(message)s"
-    logging.basicConfig(format=format, level=level, stream=sys.stderr)
 
-    return logging.getLogger(name)
-
-logger = init_logger("mobi2archive", logging.DEBUG)
-
-def parse_args():
-    parser = argparse.ArgumentParser()
-
-    parser.add_argument("-d", "--directory", default=Path("."), help="directory to process for mobi files")
-    parser.add_argument("-f", "--format", default="7zip",
-        choices=format_ext.keys(), help="archive file format to convert to")
-    parser.add_argument("-F", "--force", action="store_true", default=False,
-        help="force to overwrite existing archive files")
-
-    return parser.parse_args()
-
-def mobi2archive(mobi_file, format="7zip"):
+def mobi2archive(mobi_file, format="zip"):
     start = time.perf_counter()
     logger.info(f"Processing {mobi_file} to {format} archive...")
     extract_dir, _ = mobi.extract(str(mobi_file))
@@ -68,25 +55,21 @@ def mobi2archive(mobi_file, format="7zip"):
     # clean up
     shutil.rmtree(extract_dir)
 
-def main():
-    args = parse_args()
+    return mobi_file
 
-    # register file format at first
-    shutil.register_archive_format("7zip", pack_7zarchive, description="7zip archive")
-    shutil.register_unpack_format("7zip", [".7z"], unpack_7zarchive)
 
+def mobi2archive_workers(directory, format, force=False, max_workers=4):
     mobi_files = []
-    for root, _, files in os.walk(args.directory):
+    for root, _, files in os.walk(directory):
         root = root if isinstance(root, Path) else Path(root)
-        for file in files:
-            file = root.absolute() / file
+        for f in files:
+            file = root.resolve() / f
 
-            base_name, ext = os.path.splitext(file)
-            if ext != ".mobi":
+            if file.suffix != ".mobi":
                 continue
-            archive = base_name + format_ext.get(args.format)
-            if os.path.exists(archive) and not args.force:
-                logger.info(f"{archive} exist, skip...")
+            archive = file.with_suffix(format_ext.get(format))
+            if os.path.exists(archive) and not force:
+                logger.warning(f"{archive} exist, skip...")
                 continue
 
             mobi_files.append(file)
@@ -94,11 +77,78 @@ def main():
     if not len(mobi_files) > 0:
         return
 
-    with ProcessPoolExecutor() as executor:
-        executor.map(mobi2archive, mobi_files, repeat(args.format))
+    # Execute the archive command in parallel using ProcessPoolExecutor
+    with concurrent.futures.ProcessPoolExecutor(max_workers=max_workers) as executor:
+        futures = {
+            executor.submit(mobi2archive, mobi_file, format): mobi_file
+            for mobi_file in mobi_files
+        }
+        for future in concurrent.futures.as_completed(futures):
+            mobi_file = futures[future]
+            try:
+                future.result()
+            except Exception as exc:
+                logger.warning(
+                    "Error convert mobi_file %s to archive, %s", mobi_file, exc
+                )
 
-if __name__ == "__main__":
+
+def parse_args():
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument(
+        "-d",
+        "--directory",
+        default=Path("."),
+        help="directory to process for mobi files",
+    )
+    parser.add_argument(
+        "-f",
+        "--format",
+        default="zip",
+        choices=[ar[0] for ar in shutil.get_archive_formats()],
+        help="archive file format to convert to",
+    )
+    parser.add_argument(
+        "-F",
+        "--force",
+        action="store_true",
+        default=False,
+        help="force to overwrite existing archive files",
+    )
+    parser.add_argument(
+        "-w",
+        "--max_workers",
+        type=int,
+        default=4,
+        help="max_workers for ProcessPoolExecutor (default: %(default)s)",
+    )
+
+    return parser.parse_args()
+
+
+def main():
+    try:
+        # Register 7z format if py7zr is installed
+        # pip3 install -U py7zr || apt install python3-py7zr
+        from py7zr import pack_7zarchive, unpack_7zarchive
+
+        shutil.register_archive_format(
+            "7z", function=pack_7zarchive, description="7zip archive"
+        )
+        shutil.register_unpack_format(
+            "7z", extensions=[".7z"], function=unpack_7zarchive
+        )
+    except ImportError:
+        pass
+
+    args = parse_args()
+
     start = time.perf_counter()
-    main()
+    mobi2archive_workers(args.directory, args.format, args.force, args.max_workers)
     elapsed = time.perf_counter() - start
     logger.debug(f"Program finished in {elapsed:0.5f} seconds")
+
+
+if __name__ == "__main__":
+    main()
