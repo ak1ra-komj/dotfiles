@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 
 format_ext = {
-    "7zip": ".7z",
+    "7z": ".7z",
     "zip": ".zip",
     "tar": ".tar",
     "gztar": ".tar.gz",
@@ -32,10 +32,10 @@ format_ext = {
 
 def mobi2archive(mobi_file, format="zip"):
     start = time.perf_counter()
-    logger.info(f"Processing {mobi_file} to {format} archive...")
+    logger.info("Processing %s to %s archive...", mobi_file, format)
     extract_dir, _ = mobi.extract(str(mobi_file))
     elapsed = time.perf_counter() - start
-    logger.debug(f"mobi.extract({mobi_file}) finished in {elapsed:0.5f} seconds")
+    logger.debug("mobi.extract(%s) finished in %0.5f seconds", mobi_file, elapsed)
     extract_dir = extract_dir if isinstance(extract_dir, Path) else Path(extract_dir)
 
     # Images directory
@@ -50,7 +50,7 @@ def mobi2archive(mobi_file, format="zip"):
     start = time.perf_counter()
     shutil.make_archive(base_name, format=format, root_dir=root_dir)
     elapsed = time.perf_counter() - start
-    logger.debug(f"shutil.make_archive({archive}) finished in {elapsed:0.5f} seconds")
+    logger.debug("shutil.make_archive(%s) finished in %0.5f seconds", archive, elapsed)
 
     # clean up
     shutil.rmtree(extract_dir)
@@ -69,7 +69,7 @@ def mobi2archive_workers(directory, format, force=False, max_workers=4):
                 continue
             archive = file.with_suffix(format_ext.get(format))
             if os.path.exists(archive) and not force:
-                logger.warning(f"{archive} exist, skip...")
+                logger.warning("%s exist, skip...", archive)
                 continue
 
             mobi_files.append(file)
@@ -84,13 +84,11 @@ def mobi2archive_workers(directory, format, force=False, max_workers=4):
             for mobi_file in mobi_files
         }
         for future in concurrent.futures.as_completed(futures):
-            mobi_file = futures[future]
+            _ = futures[future]
             try:
                 future.result()
             except Exception as exc:
-                logger.warning(
-                    "Error convert mobi_file %s to archive, %s", mobi_file, exc
-                )
+                logger.warning(exc)
 
 
 def parse_args():
@@ -147,7 +145,7 @@ def main():
     start = time.perf_counter()
     mobi2archive_workers(args.directory, args.format, args.force, args.max_workers)
     elapsed = time.perf_counter() - start
-    logger.debug(f"Program finished in {elapsed:0.5f} seconds")
+    logger.debug("Program finished in %0.5f seconds", elapsed)
 
 
 if __name__ == "__main__":
