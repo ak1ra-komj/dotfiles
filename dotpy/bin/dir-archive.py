@@ -37,8 +37,13 @@ def main():
         # Register 7z format if py7zr is installed
         # pip3 install -U py7zr || apt install python3-py7zr
         from py7zr import pack_7zarchive, unpack_7zarchive
-        shutil.register_archive_format("7z", function=pack_7zarchive, description="7zip archive")
-        shutil.register_unpack_format("7z", extensions=[".7z"], function=unpack_7zarchive)
+
+        shutil.register_archive_format(
+            "7z", function=pack_7zarchive, description="7zip archive"
+        )
+        shutil.register_unpack_format(
+            "7z", extensions=[".7z"], function=unpack_7zarchive
+        )
     except ImportError:
         pass
 
