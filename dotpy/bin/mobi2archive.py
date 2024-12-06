@@ -30,7 +30,7 @@ format_ext = {
 }
 
 
-def mobi2archive(mobi_file, format="zip"):
+def mobi2archive(mobi_file, format="zip", dry_run=False):
     start = time.perf_counter()
     logger.info("Processing %s to %s archive...", mobi_file, format)
     extract_dir, _ = mobi.extract(str(mobi_file))
@@ -45,10 +45,10 @@ def mobi2archive(mobi_file, format="zip"):
     root_dir = mobi8 if any(mobi8.iterdir()) else mobi7
 
     # 这样应该没有子目录, 压缩文件保存在源文件同目录
-    base_name, _ = os.path.splitext(mobi_file)
-    archive = base_name + format_ext.get(format)
     start = time.perf_counter()
-    shutil.make_archive(base_name, format=format, root_dir=root_dir)
+    archive = shutil.make_archive(
+        mobi_file.stem, format=format, root_dir=root_dir, dry_run=dry_run
+    )
     elapsed = time.perf_counter() - start
     logger.debug("shutil.make_archive(%s) finished in %0.5f seconds", archive, elapsed)
 
@@ -58,13 +58,12 @@ def mobi2archive(mobi_file, format="zip"):
     return mobi_file
 
 
-def mobi2archive_workers(directory, format, force=False, max_workers=4):
+def get_mobi_files(directory, format, force=False):
     mobi_files = []
     for root, _, files in os.walk(directory):
         root = root if isinstance(root, Path) else Path(root)
         for f in files:
             file = root.resolve() / f
-
             if file.suffix != ".mobi":
                 continue
             archive = file.with_suffix(format_ext.get(format))
@@ -74,31 +73,15 @@ def mobi2archive_workers(directory, format, force=False, max_workers=4):
 
             mobi_files.append(file)
 
-    if not len(mobi_files) > 0:
-        return
-
-    # Execute the archive command in parallel using ProcessPoolExecutor
-    with concurrent.futures.ProcessPoolExecutor(max_workers=max_workers) as executor:
-        futures = {
-            executor.submit(mobi2archive, mobi_file, format): mobi_file
-            for mobi_file in mobi_files
-        }
-        for future in concurrent.futures.as_completed(futures):
-            _ = futures[future]
-            try:
-                future.result()
-            except Exception as exc:
-                logger.warning(exc)
+    return mobi_files
 
 
 def parse_args():
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
-        "-d",
-        "--directory",
-        default=Path("."),
-        help="directory to process for mobi files",
+        "directory",
+        help="directory to find for mobi files, os.walk() recursively",
     )
     parser.add_argument(
         "-f",
@@ -111,8 +94,13 @@ def parse_args():
         "-F",
         "--force",
         action="store_true",
-        default=False,
         help="force to overwrite existing archive files",
+    )
+    parser.add_argument(
+        "-D",
+        "--dry-run",
+        action="store_true",
+        help="dry_run argument for shutil.make_archive",
     )
     parser.add_argument(
         "-w",
@@ -141,9 +129,24 @@ def main():
         pass
 
     args = parse_args()
+    mobi_files = get_mobi_files()
+    if not len(mobi_files) > 0:
+        return
 
     start = time.perf_counter()
-    mobi2archive_workers(args.directory, args.format, args.force, args.max_workers)
+    # Execute the archive command in parallel using ProcessPoolExecutor
+    with concurrent.futures.ProcessPoolExecutor(
+        max_workers=args.max_workers
+    ) as executor:
+        futures = {
+            executor.submit(mobi2archive, file, args.format, args.dry_run): file
+            for file in mobi_files
+        }
+        for future in concurrent.futures.as_completed(futures):
+            try:
+                future.result()
+            except Exception as exc:
+                logger.warning(exc)
     elapsed = time.perf_counter() - start
     logger.debug("Program finished in %0.5f seconds", elapsed)
 
