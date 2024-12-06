@@ -53,7 +53,7 @@ main() {
     local pattern="${1:-.*}" # Default pattern matches all interfaces
 
     # Use find with regex to filter interfaces
-    mapfile -t interfaces < <(find /sys/class/net -type l -printf "%f\n" | awk "/${pattern}/")
+    mapfile -t interfaces < <(find /sys/class/net -type l -printf "%f\n" | awk "/${pattern}/" | sort)
 
     # Calculate the maximum interface name length for alignment
     max_interface_len=0
