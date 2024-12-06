@@ -4,18 +4,49 @@
 
 set -o errexit -o nounset -o pipefail
 
-net_statistics() {
+convert_bytes() {
+    local bytes=$1 value unit
+    if ((bytes >= 2 ** 40)); then
+        value=$(bc <<<"scale=2; ${bytes}/2^40")
+        unit="TiB"
+    else
+        value=$(bc <<<"scale=2; ${bytes}/2^30")
+        unit="GiB"
+    fi
+    # Ensure consistent width for numeric value and unit
+    printf "%6.2f %s" "${value}" "${unit}"
+}
+
+format_packets() {
+    local packets=$1
+    # Format packets with either scientific notation or integer
+    if ((packets >= 1000000)); then
+        printf "%8.2e packets" "${packets}"
+    else
+        printf "%8d packets" "${packets}"
+    fi
+}
+
+process_interface() {
     local interface="$1"
-    local rx_bytes rx_packets tx_bytes tx_packets
+    local rx_bytes_raw rx_stats rx_packets rx_pkts
+    local tx_bytes_raw tx_stats tx_packets tx_pkts
 
-    rx_bytes=$(bc <<<"scale=2; $(cat /sys/class/net/${interface}/statistics/rx_bytes)/2^30")
+    # Read raw data
+    rx_bytes_raw=$(cat /sys/class/net/${interface}/statistics/rx_bytes)
     rx_packets=$(cat /sys/class/net/${interface}/statistics/rx_packets)
-
-    tx_bytes=$(bc <<<"scale=2; $(cat /sys/class/net/${interface}/statistics/tx_bytes)/2^30")
+    tx_bytes_raw=$(cat /sys/class/net/${interface}/statistics/tx_bytes)
     tx_packets=$(cat /sys/class/net/${interface}/statistics/tx_packets)
 
-    printf "%-${max_interface_len}s : RX %6.2f GiB, %12d packets, TX %6.2f GiB, %12d packets\n" \
-        "${interface}" "${rx_bytes}" "${rx_packets}" "${tx_bytes}" "${tx_packets}"
+    # Process RX and TX stats
+    rx_stats=$(convert_bytes "${rx_bytes_raw}")
+    rx_pkts=$(format_packets "${rx_packets}")
+    tx_stats=$(convert_bytes "${tx_bytes_raw}")
+    tx_pkts=$(format_packets "${tx_packets}")
+
+    # Construct formatted output for this interface
+    printf "%-${max_interface_len}s : RX %s, %s, TX %s, %s\n" \
+        "${interface}" "${rx_stats}" "${rx_pkts}" "${tx_stats}" "${tx_pkts}"
 }
 
 main() {
@@ -36,9 +67,9 @@ main() {
         exit 1
     fi
 
-    # Display statistics for each matching interface
+    # Process and output statistics for each matching interface
     for interface in "${interfaces[@]}"; do
-        net_statistics "${interface}"
+        process_interface "${interface}"
     done
 }
 
