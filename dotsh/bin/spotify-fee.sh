@@ -1,8 +1,6 @@
 #!/bin/bash
 # author: ak1ra
 # date: 2024-12-11
-# https://docs.rsshub.app/routes/other#外汇牌价
-# 美元 USD 现汇买入价：726.02 现钞买入价：726.02 现汇卖出价：729.07 现钞卖出价：729.07 中行折算价：718.43
 
 set -o errexit -o nounset -o pipefail
 
@@ -24,24 +22,29 @@ telegram_send_message() {
         MESSAGE=$(cat)
     fi
 
-    curl -s -X POST "https://api.telegram.org/bot${BOT_TOKEN}/sendMessage" \
-        -d chat_id="${CHAT_ID}" \
-        -d text="${MESSAGE}" \
-        -d parse_mode="Markdown" >/dev/null
+    (
+        set -x
+        curl -s -X POST "https://api.telegram.org/bot${BOT_TOKEN}/sendMessage" \
+            -d chat_id="${CHAT_ID}" \
+            -d text="${MESSAGE}" \
+            -d parse_mode="Markdown" >/dev/null
+    )
 }
 
 boc_whpj() {
     local currency="$1"
-    local whpj_type="$2"
-
     test -n "${currency}" || currency="USD"
-    test -n "${whpj_type}" || whpj_type="现汇卖出价"
 
+    # https://docs.rsshub.app/routes/other#外汇牌价
+    # <title>美元 USD 现汇卖出价：728.87</title>
     local rsshub="https://rsshub.app"
-    local whpj_rss="${rsshub}/boc/whpj/zs?filter_title=${currency}"
-    curl -s "${whpj_rss}" |
-        xmlstarlet sel -t -m '//item/title[contains(text(),"'"${currency}"'")]/following-sibling::description' \
-            -v 'substring-before(substring-after(., "'"${whpj_type}"'："), "<br>")' -n
+    local whpj_rss="${rsshub}/boc/whpj/xhmc?filter_title=${currency}"
+    (
+        set -x
+        curl -s "${whpj_rss}" |
+            xmlstarlet sel -t -m '//item/title[contains(text(),"'"${currency}"'")]' \
+                -v 'substring-after(., "现汇卖出价：")' -n
+    )
 }
 
 spotify_fee() {
@@ -52,10 +55,10 @@ spotify_fee() {
     local monthly_fee="19.99"
 
     local start_date="$(date --date="$(date +%Y-%m-${bill_day})" +%F)"
-    local end_date="$(date --date="${start_date} +3 months" +%F)"
+    local end_date="$(date --date="${start_date} +${months} months" +%F)"
 
     local whpj_base="100"
-    local whpj_usd="$(boc_whpj USD 现汇卖出价)"
+    local whpj_usd="$(boc_whpj USD)"
     local user_fee="$(bc <<<"scale=2;${monthly_fee}*${months}*${whpj_usd}/${whpj_base}/${user_count}")"
 
     cat <<EOF
@@ -71,10 +74,14 @@ spotify_fee() {
 EOF
 }
 
-require_command bc xmlstarlet
+main() {
+    require_command bc xmlstarlet
 
-# BOT_TOKEN="xxxxx:xxxxx" CHAT_ID="-1001234567890" bash ~/bin/spotify-fee.sh
-BOT_TOKEN="${BOT_TOKEN}"
-CHAT_ID="${CHAT_ID}"
+    # BOT_TOKEN="xxxxx:xxxxx" CHAT_ID="-1001234567890" bash ~/bin/spotify-fee.sh
+    BOT_TOKEN="${BOT_TOKEN}"
+    CHAT_ID="${CHAT_ID}"
 
-spotify_fee "$@" | telegram_send_message
+    spotify_fee | telegram_send_message
+}
+
+main "$@"
