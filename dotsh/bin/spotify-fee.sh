@@ -38,6 +38,7 @@ boc_whpj() {
     # https://docs.rsshub.app/routes/other#外汇牌价
     # <title>美元 USD 现汇卖出价：728.87</title>
     local rsshub="https://rsshub.app"
+    # curl -s https://rsshub.app/boc/whpj/xhmc?filter_title=USD | xmlstarlet sel -t -m '//item/title[contains(text(),"USD")]' -v 'substring-after(., "现汇卖出价：")' -n
     local whpj_rss="${rsshub}/boc/whpj/xhmc?filter_title=${currency}"
     (
         set -x
