@@ -10,15 +10,15 @@ import psutil
 def convert_bytes(bytes):
     """Converts bytes to human-readable format (GiB or TiB)."""
     if bytes >= 2**40:
-        return f"{bytes / 2**40:.2f} TiB"
+        return f"{bytes / 2**40:7.2f} TiB"
     else:
-        return f"{bytes / 2**30:.2f} GiB"
+        return f"{bytes / 2**30:7.2f} GiB"
 
 
 def format_packets(packets):
     """Formats packets with scientific notation or integer."""
     if packets >= 1000000:
-        return f"{packets:.2e} packets"
+        return f"{packets:8.2e} packets"
     else:
         return f"{packets:8d} packets"
 

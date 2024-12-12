@@ -14,7 +14,7 @@ convert_bytes() {
         unit="GiB"
     fi
     # Ensure consistent width for numeric value and unit
-    printf "%6.2f %s" "${value}" "${unit}"
+    printf "%7.2f %s" "${value}" "${unit}"
 }
 
 format_packets() {
