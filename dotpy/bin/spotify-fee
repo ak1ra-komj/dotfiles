@@ -33,20 +33,25 @@ def create_spotify_fee_message(
     today = datetime.date.today()
     start_date = today + datetime.timedelta(days=(billing_day - today.day))
     end_date = start_date + datetime.timedelta(days=months * 30)
+
+    # 本汇率表单位为 100 外币换算人民币
+    exchange_base = 100
     exchange_rate = get_exchange_rate(currency)
     logger.debug("exchange_rate for currency %s is %.2f", currency, exchange_rate)
-    user_fee = round(monthly_fee * months * exchange_rate / 100 / user_count, 2)
+    user_fee = round(
+        monthly_fee * months * exchange_rate / exchange_base / user_count, 2
+    )
 
     message = f"""
 大家好,
 
 大家可以开始缴纳本期 Spotify Family 订阅摊分费用了,
 
-本期缴费的生效时间为 {start_date} ~ {end_date}, 当前 Spotify 订阅费用为 `\${monthly_fee}/mo\`,
+本期缴费的生效时间为 _{start_date} ~ {end_date}_, 当前 Spotify 订阅费用为 *${monthly_fee}/mo*,
 
-按照当前 [中国银行外汇牌价](https://www.boc.cn/sourcedb/whpj/) 美元 的 *现汇卖出价* \`${exchange_rate} CNY / 100 USD\`, 本期应收:
+按照当前 [中国银行外汇牌价](https://www.boc.cn/sourcedb/whpj/) 美元 的 *现汇卖出价 ${exchange_rate}*, 本期应收:
 
-\`${monthly_fee} * {months} * {exchange_rate} / 100 / {user_count} = {user_fee} CNY\`
+`{monthly_fee} * {months} * {exchange_rate} / {exchange_base} / {user_count} = {user_fee} CNY`
 """
     return message
 
