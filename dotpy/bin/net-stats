@@ -39,8 +39,10 @@ def get_net_stats(pattern):
     filtered_interfaces = [
         interface for interface in net_io_counters if pattern.search(interface)
     ]
-    max_interface_len = max(len(interface) for interface in filtered_interfaces)
+    if len(filtered_interfaces) <= 0:
+        return
 
+    max_interface_len = max(len(interface) for interface in filtered_interfaces)
     for interface, stats in net_io_counters.items():
         if pattern.search(interface):
             print(
