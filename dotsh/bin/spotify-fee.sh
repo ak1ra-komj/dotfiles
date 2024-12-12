@@ -2,7 +2,7 @@
 # author: ak1ra
 # date: 2024-12-11
 
-set -o errexit -o nounset -o pipefail
+set -o errexit -o pipefail
 
 require_command() {
     for c in "$@"; do
@@ -51,11 +51,11 @@ boc_whpj() {
 spotify_fee() {
     local months="3"
     local user_count="6"
-    local bill_day="17"
+    local billing_day="17"
     # https://www.spotify.com/us/premium/
     local monthly_fee="19.99"
 
-    local start_date="$(date --date="$(date +%Y-%m-${bill_day})" +%F)"
+    local start_date="$(date --date="$(date +%Y-%m-${billing_day})" +%F)"
     local end_date="$(date --date="${start_date} +${months} months" +%F)"
 
     local whpj_base="100"
@@ -82,7 +82,11 @@ main() {
     BOT_TOKEN="${BOT_TOKEN}"
     CHAT_ID="${CHAT_ID}"
 
-    spotify_fee | telegram_send_message
+    if [ -n "${BOT_TOKEN}" ] && [ -n "${CHAT_ID}" ]; then
+        spotify_fee | telegram_send_message
+    else
+        spotify_fee
+    fi
 }
 
 main "$@"
