@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# apt-get install python3-httpx
 
 import argparse
 import datetime
@@ -43,7 +44,7 @@ def create_spotify_fee_message(
 
 本期缴费的生效时间为 {start_date} ~ {end_date}, 当前 Spotify 订阅费用为 `\${monthly_fee}/mo\`,
 
-按照当前 [中国银行外汇牌价](https://www.telegram.org/boc.cn.cn/sourcedb/whpj/) 美元 的 *现汇卖出价* \`${exchange_rate} CNY / 100 USD\`, 本期应收:
+按照当前 [中国银行外汇牌价](https://www.boc.cn/sourcedb/whpj/) 美元 的 *现汇卖出价* \`${exchange_rate} CNY / 100 USD\`, 本期应收:
 
 \`${monthly_fee} * {months} * {exchange_rate} / 100 / {user_count} = {user_fee} CNY\`
 """
