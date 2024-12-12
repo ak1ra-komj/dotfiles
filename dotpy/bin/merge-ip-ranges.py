@@ -5,7 +5,7 @@
 import argparse
 import fileinput
 
-from netaddr import IPSet, IPNetwork
+from netaddr import IPNetwork, IPSet
 
 
 def digit_str_zfill(digit_str: str, group):

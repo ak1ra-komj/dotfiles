@@ -4,18 +4,17 @@
 # python3 -m pip install mobi py7zr
 
 import argparse
+import concurrent.futures
 import logging
 import os
 import shutil
 import time
-import concurrent.futures
 from pathlib import Path
 
 import mobi
 
-
 logging.basicConfig(
-    format="[%(asctime)s][%(name)s][%(levelname)s] %(message)s", level=logging.DEBUG
+    format="[%(asctime)s][%(name)s][%(levelname)s] %(message)s", level=logging.WARNING
 )
 logger = logging.getLogger(__name__)
 
