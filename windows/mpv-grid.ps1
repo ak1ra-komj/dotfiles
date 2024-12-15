@@ -1,6 +1,7 @@
 param (
     [string[]]$VideoPaths,   # Command-line video file paths
-    [int]$TargetMonitor = 0  # Target monitor index (0-based)
+    [int]$TargetMonitor = 0,  # Target monitor index (0-based)
+    [string]$Layout = "2x2"  # Layout (e.g., "2x2", "3x2", "4x4")
 )
 
 # Add Windows Forms for screen and taskbar handling
@@ -23,23 +24,35 @@ $screenHeight = $selectedMonitor.Bounds.Height
 
 # Adjust height to account for the taskbar (if it's on the selected monitor)
 $taskbar = [System.Windows.Forms.Screen]::PrimaryScreen.WorkingArea
-if (!$selectedMonitor.Bounds.Equals($taskbar)) {
+if (-not $selectedMonitor.Bounds.Equals($taskbar)) {
     $taskbarHeight = $screenHeight - $taskbar.Height
     $screenHeight -= $taskbarHeight
     Write-Host "Adjusted for taskbar height: $taskbarHeight pixels."
 }
 
-# Calculate window size based on the target monitor
-$windowWidth = [math]::Floor($screenWidth / 2)
-$windowHeight = [math]::Floor($screenHeight / 2)
+# Parse layout parameter (e.g., "2x2")
+if ($Layout -notmatch "^(\d+)x(\d+)$") {
+    Write-Host "Error: Invalid layout format. Use format NxM (e.g., 2x2, 3x2). Exiting."
+    exit
+}
 
-# Window positions for the 4 quadrants (top-left, bottom-left, top-right, bottom-right)
-$positions = @(
-    "0,0",                  # Top-left
-    "0,$($windowHeight)",   # Bottom-left
-    "$($windowWidth),0",    # Top-right
-    "$($windowWidth),$($windowHeight)" # Bottom-right
-)
+# Extract rows and columns from the layout
+$rows = [int]$matches[1]
+$cols = [int]$matches[2]
+
+# Calculate window size based on the layout
+$windowWidth = [math]::Floor($screenWidth / $cols)
+$windowHeight = [math]::Floor($screenHeight / $rows)
+
+# Generate window positions for the specified layout
+$positions = @()
+for ($row = 0; $row -lt $rows; $row++) {
+    for ($col = 0; $col -lt $cols; $col++) {
+        $x = $col * $windowWidth
+        $y = $row * $windowHeight
+        $positions += "$x,$y"
+    }
+}
 
 # Adjust positions to the target monitor's coordinates
 $positions = $positions | ForEach-Object {
@@ -65,17 +78,14 @@ if (-not $VideoPaths) {
         exit
     }
 
-    # Randomly select up to 4 video files
-    $VideoPaths = $VideoPaths | Get-Random -Count ([math]::Min($VideoPaths.Count, 4))
+    # Randomly select up to the number of available positions
+    $VideoPaths = $VideoPaths | Get-Random -Count ([math]::Min($VideoPaths.Count, $positions.Count))
 }
 
-# Warn if fewer than 4 video files are available
-if ($VideoPaths.Count -lt 4) {
-    Write-Host "Warning: Fewer than 4 video files found. Playing available files."
+# Warn if fewer than the required number of videos are available
+if ($VideoPaths.Count -lt $positions.Count) {
+    Write-Host "Warning: Fewer videos than positions in the layout. Playing available files."
 }
-
-# Debug: Log video paths
-Write-Host "Video paths: $($VideoPaths -join ', ')"
 
 # Launch MPV player for each video file with the specified layout
 for ($i = 0; $i -lt $VideoPaths.Count; $i++) {
