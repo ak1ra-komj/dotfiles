@@ -1,10 +1,26 @@
 param (
-    [string[]]$VideoPaths # Command-line video file paths
+    [string[]]$VideoPaths,   # Command-line video file paths
+    [int]$TargetMonitor = 0  # Target monitor index (0-based)
 )
 
-# Screen resolution and window size configuration
-$screenWidth = 2560
-$screenHeight = 1440
+Add-Type -AssemblyName System.Windows.Forms
+
+# Get monitor information
+$monitors = [System.Windows.Forms.Screen]::AllScreens
+
+if ($TargetMonitor -ge $monitors.Count -or $TargetMonitor -lt 0) {
+    Write-Host "Error: Invalid monitor index. Exiting."
+    exit
+}
+
+# Select the target monitor
+$selectedMonitor = $monitors[$TargetMonitor]
+$monitorX = $selectedMonitor.Bounds.X
+$monitorY = $selectedMonitor.Bounds.Y
+$screenWidth = $selectedMonitor.Bounds.Width
+$screenHeight = $selectedMonitor.Bounds.Height
+
+# Calculate window size based on the target monitor
 $windowWidth = [math]::Floor($screenWidth / 2)
 $windowHeight = [math]::Floor($screenHeight / 2)
 
@@ -15,6 +31,12 @@ $positions = @(
     "$($windowWidth),0",    # Top-right
     "$($windowWidth),$($windowHeight)" # Bottom-right
 )
+
+# Adjust positions to the target monitor's coordinates
+$positions = $positions | ForEach-Object {
+    $coords = $_.Split(",")
+    "$($monitorX + [int]$coords[0]),$($monitorY + [int]$coords[1])"
+}
 
 # If no video paths are provided, search for video files in the current directory
 if (-not $VideoPaths) {
@@ -30,7 +52,7 @@ if (-not $VideoPaths) {
 
     # Exit if no video files are found
     if ($VideoPaths.Count -eq 0) {
-        Write-Host "No video files found. Exiting."
+        Write-Host "Error: No video files found. Exiting."
         exit
     }
 
@@ -40,8 +62,11 @@ if (-not $VideoPaths) {
 
 # Warn if fewer than 4 video files are available
 if ($VideoPaths.Count -lt 4) {
-    Write-Host "Fewer than 4 video files found. Playing available files."
+    Write-Host "Warning: Fewer than 4 video files found. Playing available files."
 }
+
+# Debug: Log video paths
+Write-Host "Video paths: $($VideoPaths -join ', ')"
 
 # Launch MPV player for each video file with the specified layout
 for ($i = 0; $i -lt $VideoPaths.Count; $i++) {
