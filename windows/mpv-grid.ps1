@@ -3,6 +3,7 @@ param (
     [int]$TargetMonitor = 0  # Target monitor index (0-based)
 )
 
+# Add Windows Forms for screen and taskbar handling
 Add-Type -AssemblyName System.Windows.Forms
 
 # Get monitor information
@@ -19,6 +20,14 @@ $monitorX = $selectedMonitor.Bounds.X
 $monitorY = $selectedMonitor.Bounds.Y
 $screenWidth = $selectedMonitor.Bounds.Width
 $screenHeight = $selectedMonitor.Bounds.Height
+
+# Adjust height to account for the taskbar (if it's on the selected monitor)
+$taskbar = [System.Windows.Forms.Screen]::PrimaryScreen.WorkingArea
+if (!$selectedMonitor.Bounds.Equals($taskbar)) {
+    $taskbarHeight = $screenHeight - $taskbar.Height
+    $screenHeight -= $taskbarHeight
+    Write-Host "Adjusted for taskbar height: $taskbarHeight pixels."
+}
 
 # Calculate window size based on the target monitor
 $windowWidth = [math]::Floor($screenWidth / 2)
