@@ -1,6 +1,6 @@
 param (
-    [string[]]$VideoPaths,   # Command-line video file paths
-    [int]$TargetMonitor = 0,  # Target monitor index (0-based)
+    [string[]]$Videos,   # Command-line video file paths
+    [int]$Monitor = 0,  # Target monitor index (0-based)
     [string]$Layout = "2x2"  # Layout (e.g., "2x2", "3x2", "4x4")
 )
 
@@ -10,13 +10,13 @@ Add-Type -AssemblyName System.Windows.Forms
 # Get monitor information
 $monitors = [System.Windows.Forms.Screen]::AllScreens
 
-if ($TargetMonitor -ge $monitors.Count -or $TargetMonitor -lt 0) {
+if ($Monitor -ge $monitors.Count -or $Monitor -lt 0) {
     Write-Host "Error: Invalid monitor index. Exiting."
     exit
 }
 
 # Select the target monitor
-$selectedMonitor = $monitors[$TargetMonitor]
+$selectedMonitor = $monitors[$Monitor]
 $monitorX = $selectedMonitor.Bounds.X
 $monitorY = $selectedMonitor.Bounds.Y
 $screenWidth = $selectedMonitor.Bounds.Width
@@ -61,37 +61,37 @@ $positions = $positions | ForEach-Object {
 }
 
 # If no video paths are provided, search for video files in the current directory
-if (-not $VideoPaths) {
+if (-not $Videos) {
     Write-Host "No video paths provided. Searching for video files in the current directory..."
 
     # Supported video file extensions
     $supportedExtensions = @(".mp4", ".mkv", ".avi", ".mov", ".flv")
 
     # Recursively find video files
-    $VideoPaths = Get-ChildItem -Path . -Recurse -File | Where-Object {
+    $Videos = Get-ChildItem -Path . -Recurse -File | Where-Object {
         $supportedExtensions -contains $_.Extension.ToLower()
     } | Select-Object -ExpandProperty FullName
 
     # Exit if no video files are found
-    if ($VideoPaths.Count -eq 0) {
+    if ($Videos.Count -eq 0) {
         Write-Host "Error: No video files found. Exiting."
         exit
     }
 
     # Randomly select up to the number of available positions
-    $VideoPaths = $VideoPaths | Get-Random -Count ([math]::Min($VideoPaths.Count, $positions.Count))
+    $Videos = $Videos | Get-Random -Count ([math]::Min($Videos.Count, $positions.Count))
 }
 
 # Warn if fewer than the required number of videos are available
-if ($VideoPaths.Count -lt $positions.Count) {
+if ($Videos.Count -lt $positions.Count) {
     Write-Host "Warning: Fewer videos than positions in the layout. Playing available files."
 }
 
 # Launch MPV player for each video file with the specified layout
-for ($i = 0; $i -lt $VideoPaths.Count; $i++) {
+for ($i = 0; $i -lt $Videos.Count; $i++) {
     $position = $positions[$i]
     $geometry = "$($windowWidth)x$($windowHeight)+$($position.Replace(',', '+'))"
-    $videoFile = $VideoPaths[$i]
+    $videoFile = $Videos[$i]
 
     # Launch MPV player with geometry and no border
     Start-Process -NoNewWindow -FilePath "mpv.exe" -ArgumentList "--geometry=$geometry", "--no-border", "`"$videoFile`""
