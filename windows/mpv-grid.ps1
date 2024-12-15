@@ -23,10 +23,10 @@ $screenWidth = $selectedMonitor.Bounds.Width
 $screenHeight = $selectedMonitor.Bounds.Height
 
 # Adjust height to account for the taskbar (if it's on the selected monitor)
-$taskbar = [System.Windows.Forms.Screen]::PrimaryScreen.WorkingArea
-if (-not $selectedMonitor.Bounds.Equals($taskbar)) {
-    $taskbarHeight = $screenHeight - $taskbar.Height
-    $screenHeight -= $taskbarHeight
+$workingArea = [System.Windows.Forms.Screen]::PrimaryScreen.WorkingArea
+if (-not $selectedMonitor.Bounds.Equals($workingArea)) {
+    $taskbarHeight = $screenHeight - $workingArea.Height
+    $screenHeight = $workingArea.Height
     Write-Host "Adjusted for taskbar height: $taskbarHeight pixels."
 }
 
