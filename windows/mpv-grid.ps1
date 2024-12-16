@@ -2,8 +2,8 @@
 # didn't know where to start, and wanted to watch more than one video at the same time.
 
 param (
-    [string[]]$Videos,   # Command-line video file paths
-    [int]$Monitor = 0,  # Target monitor index (0-based)
+    [string[]]$Videos,       # Command-line video file paths
+    [int]$Monitor = 0,       # Target monitor index (0-based)
     [string]$Layout = "2x2"  # Layout (e.g., "2x2", "3x2", "4x4")
 )
 
@@ -33,9 +33,9 @@ if (-not $selectedMonitor.Bounds.Equals($workingArea)) {
     Write-Host "Adjusted for taskbar height: $taskbarHeight pixels."
 }
 
-# Parse layout parameter (e.g., "2x2")
+# Parse layout parameter (e.g., "2x2", "3x2", "4x4")
 if ($Layout -notmatch "^(\d+)x(\d+)$") {
-    Write-Host "Error: Invalid layout format. Use format NxM (e.g., 2x2, 3x2). Exiting."
+    Write-Host "Error: Invalid layout format. Use format NxM (e.g., 2x2, 3x2, 4x4). Exiting."
     exit
 }
 
