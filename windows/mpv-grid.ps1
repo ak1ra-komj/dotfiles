@@ -1,3 +1,6 @@
+# This script was created by a Windows user who had downloaded too many pornographic videos,
+# didn't know where to start, and wanted to watch more than one video at the same time.
+
 param (
     [string[]]$Videos,   # Command-line video file paths
     [int]$Monitor = 0,  # Target monitor index (0-based)
