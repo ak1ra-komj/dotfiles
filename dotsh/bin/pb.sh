@@ -2,14 +2,34 @@
 
 set -o errexit -o nounset -o pipefail
 
-farsee="${HOME}/.local/fars.ee"
-test -d "${farsee}" || mkdir -p "${farsee}"
+pb_url="https://fars.ee/"
+pb_dir="${HOME}/.local/fars.ee"
+pb_jsonl="${pb_dir}/urls.jsonl"
+test -d "${pb_dir}" || mkdir -p "${pb_dir}"
 
-# https://fars.ee/
-# alias pb='curl -H "Accept: application/json" -F "c=@-" "https://fars.ee/"'
+# https://fars.ee/a
 pb() {
-    curl -s -H "Accept: application/json" -F "c=@${1:--}" "https://fars.ee/" |
-        jq -c . | tee -a "${farsee}/urls.json" | jq -r '.url'
+    curl -s -w "\n" -H "Accept: application/json" \
+        -F "c=@${1:--}" "${pb_url}" | tee -a "${pb_jsonl}"
 }
 
-pb "$@"
+pb_delete_all() {
+    mapfile -t uuid_array < <(jq -r .uuid "${pb_jsonl}")
+    for uuid in "${uuid_array[@]}"; do
+        [[ "${uuid}" = "null" ]] && continue
+        (
+            set -x
+            curl -s -w "\n" -H "Accept: application/json" -XDELETE "${pb_url}${uuid}"
+        )
+    done
+    rm -f "${pb_jsonl}"
+}
+
+main() {
+    if [ "$#" = 1 ] && [ "$1" = "--delete" ]; then
+        pb_delete_all
+    fi
+    pb "$@"
+}
+
+main "$@"
