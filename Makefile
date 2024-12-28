@@ -29,6 +29,7 @@ help:  ## show this help message
 jq:
 	$(call apt_install,jq)
 
+# sudo activate-global-python-argcomplete
 .PHONY: pipx
 pipx:
 	$(call apt_install,pipx)
@@ -37,6 +38,7 @@ pipx:
 ansible: pipx  ## pipx install ansible
 	command -v ansible >/dev/null || { \
 		pipx install ansible && \
+		pipx inject ansible argcomplete && \
 		ln -sf $(HOME)/.local/pipx/venvs/ansible/bin/ansible* $(HOME)/.local/bin/; \
 	}
 

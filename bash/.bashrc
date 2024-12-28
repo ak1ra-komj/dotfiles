@@ -158,8 +158,10 @@ test -f ~/.http_proxy.json && . ~/.http_proxy.sh
 
 # python3
 # apt install pipx
-# pipx depends python3-argcomplete which provide register-python-argcomplete
-command -v pipx >/dev/null && eval "$(register-python-argcomplete pipx)"
+# $ sudo activate-global-python-argcomplete
+# Installing bash completion script /etc/bash_completion.d/python-argcomplete
+# use global /etc/bash_completion.d/python-argcomplete instead
+# command -v pipx >/dev/null && eval "$(register-python-argcomplete pipx)"
 # pipx install poetry
 command -v poetry >/dev/null && . <(poetry completions bash)
 # pipx install pdm
