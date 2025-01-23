@@ -17,35 +17,37 @@ from icalendar import (
 
 
 def days_since_date(
-    date: datetime.date,
-    output_file: Path,
-    tz_name: str,
+    startdate: datetime.date,
+    timezone: zoneinfo.ZoneInfo,
     reminders: list[int],
     attendees: list[str],
-    max_days: int,
     interval: int,
+    max_days: int,
+    output: Path,
 ):
-    calname = "Days since date"
-    timezone = zoneinfo.ZoneInfo(tz_name)
     cal = Calendar()
+    calname = f"days since {startdate.isoformat()}"
     cal.add("PRODID", "-//Google Inc//Google Calendar//EN")
     cal.add("VERSION", "2.0")
+    cal.add("CALSCALE", "GREGORIAN")
     cal.add("X-WR-CALNAME", calname)
     cal.add("X-WR-TIMEZONE", timezone)
-    cal.add("X-WR-CALDESC", f"{calname} {date.isoformat()}")
 
-    # Google Calendar 似乎 UTC 存储 dtstart 和 dtend
-    now = datetime.datetime.now(timezone)
-    utcoffset = int(now.utcoffset().seconds / 3600)
+    # Google Calendar 似乎"强制"以 UTC 时间存储 DTSTART 和 DTEND
+    # 转换为当地时间时使用全局的 X-WR-TIMEZONE
+    utc = zoneinfo.ZoneInfo("UTC")
     for days in range(interval, max_days, interval):
         age = round(days / 365.25, 2)
-        dtstart = datetime.datetime.combine(
-            date + datetime.timedelta(days=days),
-            datetime.time(9 + utcoffset, 0),
-            tzinfo=zoneinfo.ZoneInfo("UTC"),
+        # 设定 DTSTART 为 当地时间 的 09:00
+        localtime = datetime.datetime.combine(
+            date=startdate + datetime.timedelta(days=days),
+            time=datetime.time(9, 0),
+            tzinfo=timezone,
         )
+        # 将 localtime "强制"转换为 UTC 时间
+        dtstart = localtime.replace(tzinfo=utc) - localtime.utcoffset()
         dtend = dtstart + datetime.timedelta(hours=1)
-        summary = f"{days} days since {date.isoformat()} (age: {age})"
+        summary = f"{days} days since {startdate.isoformat()} (age: {age})"
 
         event = Event()
         event.add("summary", summary)
@@ -70,22 +72,20 @@ def days_since_date(
 
         cal.add_component(event)
 
-    if not output_file:
-        output_file = Path(f"days_since_date.{date.isoformat()}.ics")
+    if not output:
+        output = Path(f"days_since_date.{startdate.isoformat()}.ics")
 
-    ical_data = cal.to_ical()
-    with output_file.open("wb") as f:
-        f.write(ical_data)
-    print(f"iCal file saved to {output_file}")
+    with output.open("wb") as f:
+        f.write(cal.to_ical())
+    print(f"iCal file saved to {output}")
 
 
 def main():
     parser = argparse.ArgumentParser(
         description="Generate iCal events for days since date."
     )
-    parser.add_argument("date", type=str, help="Date in the format YYYY-MM-DD.")
     parser.add_argument(
-        "-o", "--output", type=Path, help="Path to save the generated iCal file."
+        "startdate", type=str, help="Start date in the format YYYY-MM-DD."
     )
     parser.add_argument(
         "-t",
@@ -111,6 +111,13 @@ def main():
         help="Email addresses of attendees (default: none).",
     )
     parser.add_argument(
+        "-i",
+        "--interval",
+        type=int,
+        default=1000,
+        help="Interval in days to generate events (default: %(default)s).",
+    )
+    parser.add_argument(
         "-d",
         "--max-days",
         type=int,
@@ -118,33 +125,29 @@ def main():
         help="Max days to generate events (default: %(default)s).",
     )
     parser.add_argument(
-        "-i",
-        "--interval",
-        type=int,
-        default=1000,
-        help="Interval in days to generate events (default: %(default)s).",
+        "-o", "--output", type=Path, help="Path to save the generated iCal file."
     )
 
     args = parser.parse_args()
 
     try:
-        date = datetime.datetime.strptime(args.date, "%Y-%m-%d").date()
+        startdate = datetime.datetime.strptime(args.startdate, "%Y-%m-%d").date()
     except ValueError:
         parser.error("Invalid date format. Use YYYY-MM-DD.")
 
     try:
-        zoneinfo.ZoneInfo(args.timezone)
+        timezone = zoneinfo.ZoneInfo(args.timezone)
     except Exception:
         parser.error(f"Invalid timezone: {args.timezone}")
 
     days_since_date(
-        date,
-        args.output,
-        args.timezone,
+        startdate,
+        timezone,
         args.reminders,
         args.attendees,
-        args.max_days,
         args.interval,
+        args.max_days,
+        args.output,
     )
 
 
