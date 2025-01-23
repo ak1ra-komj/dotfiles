@@ -6,3 +6,5 @@ py7zr
 mobi
 # dotpy/bin/merge-ip-ranges.py
 netaddr
+# dotpy/bin/days_since_date.py
+icalendar
