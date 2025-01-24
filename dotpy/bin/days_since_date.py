@@ -1,11 +1,18 @@
 #!/usr/bin/env python3
-# apt install python3-icalendar
+# author: ak1ra
+# date: 2025-01-24
+# python3 -m pip install PyYAML icalendar lunar_python
+# https://github.com/collective/icalendar
+# https://github.com/6tail/lunar-python
 
 import argparse
 import datetime
+import logging
+import time
 import zoneinfo
 from pathlib import Path
 
+import yaml
 from icalendar import (
     Alarm,
     Calendar,
@@ -15,6 +22,11 @@ from icalendar import (
     vText,
 )
 from lunar_python import Lunar, LunarYear
+
+logging.basicConfig(
+    format="[%(asctime)s][%(name)s][%(levelname)s] %(message)s", level=logging.DEBUG
+)
+logger = logging.getLogger(__name__)
 
 
 def get_future_lunar_equivalent_date(
@@ -87,52 +99,22 @@ def add_attendees_to_event(event: Event, attendees: list):
         event.add("attendee", attendee)
 
 
-def add_lunar_event_to_calendar(
-    calendar: Calendar,
-    startdate: datetime.date,
-    timezone: zoneinfo.ZoneInfo,
-    reminders: list[int],
-    attendees: list[str],
-    age: int,
-):
-    # 设定 DTSTART 为 当地时间 的 09:00
-    event_time = datetime.time(hour=9, minute=0)
-    # 设定 VEVENT 的时长为 1 小时
-    event_duration = datetime.timedelta(hours=1)
-
-    event_date = get_future_lunar_equivalent_date(startdate, age)
-    dtstart = local_datetime_to_utc_datetime(event_date, event_time, timezone)
-    dtend = dtstart + event_duration
-    summary = f"{event_date.year} 年农历生日快乐"
-
-    event = Event()
-    event.add("summary", summary)
-    event.add("dtstart", vDatetime(dtstart))
-    event.add("dtend", vDatetime(dtend))
-    add_reminders_to_event(event, reminders, summary)
-    add_attendees_to_event(event, attendees)
-
-    calendar.add_component(event)
-
-
 def add_days_event_to_calendar(
     calendar: Calendar,
     startdate: datetime.date,
     timezone: zoneinfo.ZoneInfo,
+    event_time: datetime.time,
+    event_duration: datetime.timedelta,
     reminders: list[int],
     attendees: list[str],
+    username: str,
     days: int,
 ):
-    # 设定 DTSTART 为 当地时间 的 09:00
-    event_time = datetime.time(hour=9, minute=0)
-    # 设定 VEVENT 的时长为 1 小时
-    event_duration = datetime.timedelta(hours=1)
-
     age = round(days / 365.25, 2)
     startdate_utc = local_datetime_to_utc_datetime(startdate, event_time, timezone)
     dtstart = startdate_utc + datetime.timedelta(days=days)
     dtend = dtstart + event_duration
-    summary = f"{days} days since {startdate.isoformat()} (age: {age})"
+    summary = f"{username} 来到地球已经 {days} 天啦! (age: {age})"
 
     event = Event()
     event.add("summary", summary)
@@ -144,126 +126,119 @@ def add_days_event_to_calendar(
     calendar.add_component(event)
 
 
-def create_calendar(
+def add_lunar_event_to_calendar(
+    calendar: Calendar,
     startdate: datetime.date,
     timezone: zoneinfo.ZoneInfo,
+    event_time: datetime.time,
+    event_duration: datetime.timedelta,
     reminders: list[int],
     attendees: list[str],
-    interval: int,
-    max_days: int,
-    max_ages: int,
-    output: Path,
+    username: str,
+    age: int,
 ):
+    event_date = get_future_lunar_equivalent_date(startdate, age)
+    dtstart = local_datetime_to_utc_datetime(event_date, event_time, timezone)
+    dtend = dtstart + event_duration
+    summary = f"{username} {event_date.year} 年农历生日快乐 (age: {age})"
+
+    event = Event()
+    event.add("summary", summary)
+    event.add("dtstart", vDatetime(dtstart))
+    event.add("dtend", vDatetime(dtend))
+    add_reminders_to_event(event, reminders, summary)
+    add_attendees_to_event(event, attendees)
+
+    calendar.add_component(event)
+
+
+def create_calendar(config: dict, output: Path):
+    calendar_name = config.get("global").get("calendar_name")
+    timezone_name = config.get("global").get("timezone")
+    try:
+        timezone = zoneinfo.ZoneInfo(timezone_name)
+    except Exception:
+        logger.error("Invalid timezone: %s", timezone_name)
+
     calendar = Calendar()
     calendar.add("PRODID", "-//Google Inc//Google Calendar//EN")
     calendar.add("VERSION", "2.0")
     calendar.add("CALSCALE", "GREGORIAN")
-    calendar.add("X-WR-CALNAME", f"days since {startdate.isoformat()}")
+    calendar.add("X-WR-CALNAME", calendar_name)
     calendar.add("X-WR-TIMEZONE", timezone)
 
-    for days in range(interval, max_days + 1, interval):
-        add_days_event_to_calendar(
-            calendar=calendar,
-            startdate=startdate,
-            timezone=timezone,
-            reminders=reminders,
-            attendees=attendees,
-            days=days,
+    for item in config.get("startdate_list"):
+        username = item.get("username")
+        startdate = item.get("startdate")
+
+        birthday = item.get("birthday") or config.get("global").get("birthday")
+        max_ages = item.get("max_ages") or config.get("global").get("max_ages")
+        max_days = item.get("max_days") or config.get("global").get("max_days")
+        interval = item.get("interval") or config.get("global").get("interval")
+        reminders = item.get("reminders") or config.get("global").get("reminders")
+        attendees = item.get("attendees") or config.get("global").get("attendees")
+
+        event_time = datetime.datetime.strptime(
+            item.get("event_time") or config.get("global").get("event_time"), "%H:%M:%S"
+        ).time()
+        event_duration = datetime.timedelta(
+            hours=item.get("event_duration")
+            or config.get("global").get("event_duration")
         )
 
-    for age in range(0, max_ages + 1):
-        add_lunar_event_to_calendar(
-            calendar=calendar,
-            startdate=startdate,
-            timezone=timezone,
-            reminders=reminders,
-            attendees=attendees,
-            age=age,
-        )
+        for days in range(interval, max_days + 1, interval):
+            add_days_event_to_calendar(
+                calendar=calendar,
+                startdate=startdate,
+                timezone=timezone,
+                event_time=event_time,
+                event_duration=event_duration,
+                reminders=reminders,
+                attendees=attendees,
+                username=username,
+                days=days,
+            )
+
+        if not birthday:
+            continue
+        for age in range(0, max_ages + 1):
+            add_lunar_event_to_calendar(
+                calendar=calendar,
+                startdate=startdate,
+                timezone=timezone,
+                event_time=event_time,
+                event_duration=event_duration,
+                reminders=reminders,
+                attendees=attendees,
+                username=username,
+                age=age,
+            )
 
     if not output:
-        output = Path(f"calendar_for.{startdate.isoformat()}.ics")
+        output = Path(f"{calendar_name}.{startdate.isoformat()}.ics")
 
     with output.open("wb") as f:
         f.write(calendar.to_ical())
-    print(f"iCal file saved to {output}")
+    logger.info("iCal file saved to %s", output)
 
 
 def main():
     parser = argparse.ArgumentParser(
         description="Generate iCal events for days since date."
     )
-    parser.add_argument(
-        "startdate", type=str, help="Start date in the format YYYY-MM-DD."
-    )
-    parser.add_argument(
-        "-t",
-        "--timezone",
-        type=str,
-        default="Asia/Shanghai",
-        help="Timezone for the events (default: %(default)s).",
-    )
-    parser.add_argument(
-        "-r",
-        "--reminders",
-        type=int,
-        nargs="+",
-        default=[1, 3, 7],
-        help="Days before the event to set reminders (default: 1, 3, 7).",
-    )
-    parser.add_argument(
-        "-a",
-        "--attendees",
-        type=str,
-        nargs="+",
-        default=[],
-        help="Email addresses of attendees (default: none).",
-    )
-    parser.add_argument(
-        "-i",
-        "--interval",
-        type=int,
-        default=1000,
-        help="Interval in days to generate events (default: %(default)s).",
-    )
-    parser.add_argument(
-        "--max-days",
-        type=int,
-        default=30000,
-        help="Max days for days since events (default: %(default)s).",
-    )
-    parser.add_argument(
-        "--max-ages",
-        type=int,
-        default=100,
-        help="Max ages for lunar birthday events (default: %(default)s).",
-    )
+    parser.add_argument("input", type=Path, help="input config.yaml")
     parser.add_argument(
         "-o", "--output", type=Path, help="Path to save the generated iCal file."
     )
 
     args = parser.parse_args()
+    with open(args.input, "r") as f:
+        config = yaml.safe_load(f)
 
-    try:
-        startdate = datetime.datetime.strptime(args.startdate, "%Y-%m-%d").date()
-    except ValueError:
-        parser.error("Invalid date format. Use YYYY-MM-DD.")
-
-    try:
-        timezone = zoneinfo.ZoneInfo(args.timezone)
-    except Exception:
-        parser.error(f"Invalid timezone: {args.timezone}")
-
-    create_calendar(
-        startdate,
-        timezone,
-        args.reminders,
-        args.attendees,
-        args.interval,
-        args.max_days,
-        args.max_ages,
-        args.output,
-    )
+    start = time.perf_counter()
+    create_calendar(config, args.output)
+    elapsed = time.perf_counter() - start
+    logger.debug("iCal generation elapsed at %.6fs", elapsed)
 
 
 if __name__ == "__main__":
