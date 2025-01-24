@@ -41,7 +41,7 @@ def get_future_lunar_equivalent_date(
     )
     # .fromDate 所接受的类型为 datetime.datetime, 实际上处理后会把 time 部分丢弃
     lunar = Lunar.fromDate(past_solar_datetime)
-    year = past_solar_date.year + age
+    year = lunar.getYear() + age
     lunar_year = LunarYear.fromYear(year)
 
     # 获取闰月
@@ -241,9 +241,6 @@ def create_calendar(config: dict, output: Path):
                     lunar_birthday=lunar_birthday,
                 )
 
-    if not output:
-        output = Path(f"{calendar_name}.{startdate.isoformat()}.ics")
-
     with output.open("wb") as f:
         f.write(calendar.to_ical())
     logger.info("iCal file saved to %s", output)
@@ -259,11 +256,17 @@ def main():
     )
 
     args = parser.parse_args()
-    with open(args.input, "r") as f:
+    config_file = Path(args.input)
+    if not args.output:
+        output = config_file.with_suffix(".ics")
+    else:
+        output = Path(args.output)
+
+    with open(config_file, "r") as f:
         config = yaml.safe_load(f)
 
     start = time.perf_counter()
-    create_calendar(config, args.output)
+    create_calendar(config, output)
     elapsed = time.perf_counter() - start
     logger.debug("iCal generation elapsed at %.6fs", elapsed)
 
