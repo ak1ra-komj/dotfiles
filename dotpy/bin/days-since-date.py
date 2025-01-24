@@ -126,7 +126,7 @@ def add_days_event_to_calendar(
     calendar.add_component(event)
 
 
-def add_lunar_event_to_calendar(
+def add_birthday_event_to_calendar(
     calendar: Calendar,
     startdate: datetime.date,
     timezone: zoneinfo.ZoneInfo,
@@ -136,11 +136,18 @@ def add_lunar_event_to_calendar(
     attendees: list[str],
     username: str,
     age: int,
+    lunar_birthday: bool,
 ):
-    event_date = get_future_lunar_equivalent_date(startdate, age)
+    if lunar_birthday:
+        event_date = get_future_lunar_equivalent_date(startdate, age)
+        summary = f"{username} {event_date.year} 年农历生日快乐 (age: {age})"
+    else:
+        event_date = datetime.date(startdate.year + age, startdate.month, startdate.day)
+        summary = f"{username} {event_date.year} 年生日快乐 (age: {age})"
+
+    # 强制转换为 UTC 时间后保存
     dtstart = local_datetime_to_utc_datetime(event_date, event_time, timezone)
     dtend = dtstart + event_duration
-    summary = f"{username} {event_date.year} 年农历生日快乐 (age: {age})"
 
     event = Event()
     event.add("summary", summary)
@@ -172,6 +179,9 @@ def create_calendar(config: dict, output: Path):
         startdate = item.get("startdate")
 
         birthday = item.get("birthday") or config.get("global").get("birthday")
+        lunar_birthday = item.get("lunar_birthday") or config.get("global").get(
+            "lunar_birthday"
+        )
         max_ages = item.get("max_ages") or config.get("global").get("max_ages")
         max_days = item.get("max_days") or config.get("global").get("max_days")
         interval = item.get("interval") or config.get("global").get("interval")
@@ -199,20 +209,37 @@ def create_calendar(config: dict, output: Path):
                 days=days,
             )
 
-        if not birthday:
-            continue
-        for age in range(0, max_ages + 1):
-            add_lunar_event_to_calendar(
-                calendar=calendar,
-                startdate=startdate,
-                timezone=timezone,
-                event_time=event_time,
-                event_duration=event_duration,
-                reminders=reminders,
-                attendees=attendees,
-                username=username,
-                age=age,
-            )
+        # 是否添加公历生日事件
+        if birthday:
+            for age in range(0, max_ages + 1):
+                add_birthday_event_to_calendar(
+                    calendar=calendar,
+                    startdate=startdate,
+                    timezone=timezone,
+                    event_time=event_time,
+                    event_duration=event_duration,
+                    reminders=reminders,
+                    attendees=attendees,
+                    username=username,
+                    age=age,
+                    lunar_birthday=False,
+                )
+
+        # 是否添加农历生日事件
+        if lunar_birthday:
+            for age in range(0, max_ages + 1):
+                add_birthday_event_to_calendar(
+                    calendar=calendar,
+                    startdate=startdate,
+                    timezone=timezone,
+                    event_time=event_time,
+                    event_duration=event_duration,
+                    reminders=reminders,
+                    attendees=attendees,
+                    username=username,
+                    age=age,
+                    lunar_birthday=lunar_birthday,
+                )
 
     if not output:
         output = Path(f"{calendar_name}.{startdate.isoformat()}.ics")
