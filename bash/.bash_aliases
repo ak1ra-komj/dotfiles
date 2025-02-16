@@ -39,7 +39,7 @@ alias tm="tmux attach || tmux"
 ## pipx install youtube-dl
 alias ytdl='youtube-dl --external-downloader=aria2c --external-downloader-args="--max-concurrent-downloads=8 --max-connection-per-server=4"'
 ## pipx install yt-dlp
-alias ytdlp='yt-dlp --downloader=aria2c --downloader-args="aria2c:--max-concurrent-downloads=8 --max-connection-per-server=4" --embed-subs --sub-langs="zh-Hans,zh-Hant,ja,en,ko"'
+alias ytdlp='yt-dlp --downloader=aria2c --downloader-args="aria2c:--max-concurrent-downloads=8 --max-connection-per-server=4" --embed-subs --sub-langs="all,-live_chat"'
 
 # Kubenetes
 command -v kubectl >/dev/null && {
