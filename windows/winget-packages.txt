@@ -1,30 +1,47 @@
+# Dependencies
+Microsoft.VCRedist.2015+.x64
+Microsoft.VCRedist.2015+.x86
+
+# Electron
+Google.Chrome
+Obsidian.Obsidian
+
+# Common
 7zip.7zip
+ShareX.ShareX
+voidtools.Everything
+KeePassXCTeam.KeePassXC
+
+# Text Editor
+Notepad++.Notepad++
+Rizonesoft.Notepad3
+Microsoft.VisualStudioCode
+
+# Developers
+Git.Git
+Microsoft.PowerShell
+Microsoft.WindowsTerminal
+
+# Programing
+Python.Python.3.13
+Microsoft.OpenJDK.17
+AutoHotkey.AutoHotkey
+
+# Multimedia
+Gyan.FFmpeg
+ImageMagick.ImageMagick
+ch.LosslessCut
+OBSProject.OBSStudio
+PeterPawlowski.foobar2000
+
+# Hardware & Network
+WireGuard.WireGuard
 CrystalDewWorld.CrystalDiskInfo
 CrystalDewWorld.CrystalDiskMark
 FastCopy.FastCopy
-Git.Git
-Google.Chrome
-ImageMagick.ImageMagick
 JAMSoftware.TreeSize.Free
-KeePassXCTeam.KeePassXC
-Microsoft.OpenJDK.17
-Microsoft.PowerShell
-Microsoft.VCRedist.2015+.x64
-Microsoft.VCRedist.2015+.x86
-Microsoft.VisualStudioCode
-Microsoft.WindowsTerminal
+
+# Database
+HeidiSQL.HeidiSQL
 MongoDB.Compass.Isolated
-Notepad++.Notepad++
-Obsidian.Obsidian
-OBSProject.OBSStudio
-oldj.switchhosts
-Oracle.VirtualBox
-PeterPawlowski.foobar2000
-Python.Python.3.12
 qishibo.AnotherRedisDesktopManager
-RealVNC.VNCViewer
-Rizonesoft.Notepad3
-ShareX.ShareX
-voidtools.Everything
-WireGuard.WireGuard
-WiresharkFoundation.Wireshark
