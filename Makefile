@@ -3,7 +3,7 @@ BINDIR ?= $(HOME)/.local/bin
 ANSIBLE_PLAYBOOK ?= $(BINDIR)/ansible-playbook
 
 # ansible-playbook
-hosts ?= localhost
+playbook_hosts ?= localhost
 
 # package manager
 APT ?= sudo apt-get
@@ -56,4 +56,4 @@ difft: jq  ## install difft from github releases
 
 .PHONY: install
 install: ansible  ## install basic stow packages with ansible and stow
-	$(ANSIBLE_PLAYBOOK) playbook.yaml -e 'hosts=$(hosts)'
+	$(ANSIBLE_PLAYBOOK) playbook.yaml -e 'playbook_hosts=$(playbook_hosts)'
