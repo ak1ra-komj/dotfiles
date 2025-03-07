@@ -46,7 +46,7 @@ zfs_rename_vmid() {
 
     # exclude partition devices with '$' anchor
     readarray -t vm_disks < <(
-        find "/dev/${zpool_old}" -type l | grep -E "${vm_disk_old_regex}$"
+        find "/dev/zvol/${zpool_old}" -type l | grep -E "${vm_disk_old_regex}$"
     )
     for vm_disk in "${vm_disks[@]}"; do
         vm_disk_new="$(echo "${vm_disk}" |
