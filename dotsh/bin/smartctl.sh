@@ -5,6 +5,15 @@
 
 set -o errexit -o nounset -o pipefail
 
+require_command() {
+    for c in "$@"; do
+        command -v "$c" >/dev/null || {
+            printf "required command '%s' is not installed, aborting...\n" "$c" 1>&2
+            exit 1
+        }
+    done
+}
+
 declare -a disks
 declare -a smartctl_error_msgs=(
     "Bit 0: Command line did not parse."
@@ -25,15 +34,6 @@ check_smartctl_error_msgs() {
         if [ "$((status & 2 ** i && 1))" -eq 1 ]; then
             printf "%s\n" "${smartctl_error_msgs[$i]}" 1>&2
         fi
-    done
-}
-
-require_command() {
-    for c in "$@"; do
-        command -v "$c" >/dev/null || {
-            printf "required command '%s' is not installed, aborting...\n" "$c" 1>&2
-            exit 1
-        }
     done
 }
 
@@ -60,7 +60,7 @@ get_smartctl_info() {
         printf "%-32s %s\n" "user_capacity" "${user_capacity_gib} GiB"
 
         rotation_rate="$(jq -r .rotation_rate <<<"${disk_smart}")"
-        printf "%-32s %s\n" "rotation_rate" "${rotation_rate}"
+        printf "%-32s %s\n" "rotation_rate" "${rotation_rate} rpm"
 
         interface_speed="$(jq -r .interface_speed.current.string <<<"${disk_smart}")"
         printf "%-32s %s\n" "interface_speed" "${interface_speed}"
@@ -71,14 +71,22 @@ get_smartctl_info() {
         power_cycle_count="$(jq -r .power_cycle_count <<<"${disk_smart}")"
         printf "%-32s %s\n" "power_cycle_count" "${power_cycle_count}"
 
+        temperature="$(jq -r .temperature.current <<<"${disk_smart}")"
+        printf "%-32s %s\n" "temperature" "${temperature}"
+
+        # Reallocated_Sector_Ct
+        reallocated_sector_ct="$(jq -r '.ata_smart_attributes.table[] | select(.name=="Reallocated_Sector_Ct").raw.string' <<<"${disk_smart}")"
+        if [[ -n "${reallocated_sector_ct}" && "${reallocated_sector_ct}" -gt 0 ]]; then
+            printf "\e[31m%-32s %s\e[0m\n" "Reallocated_Sector_Ct" "${reallocated_sector_ct}"  # Red color
+        else
+            printf "%-32s %s\n" "Reallocated_Sector_Ct" "${reallocated_sector_ct}"
+        fi
+
         ata_smart_error_log="$(jq -r .ata_smart_error_log.summary.count <<<"${disk_smart}")"
         printf "%-32s %s\n" "ata_smart_error_log" "${ata_smart_error_log}"
 
         self_test_status="$(jq -r .ata_smart_data.self_test.status.string <<<"${disk_smart}")"
         printf "%-32s %s\n" "self_test_status" "${self_test_status}"
-
-        temperature="$(jq -r .temperature.current <<<"${disk_smart}")"
-        printf "%-32s %s\n" "temperature" "${temperature}"
 
         printf "\n"
     done
