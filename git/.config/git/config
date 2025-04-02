@@ -8,16 +8,24 @@
 [pull]
     rebase = true
 
+[advice]
+    detachedHead = false
+    skippedCherryPicks = false
+
 [alias]
     ignore = "!gi() { curl -sL https://www.toptal.com/developers/gitignore/api/$@ ;}; gi"
 
-# https://difftastic.wilfred.me.uk/git.html
-[diff]
-    external = difft
-    renameLimit = 65535
-
-[advice]
-    detachedHead = false
+    # https://difftastic.wilfred.me.uk/git.html
+    # `git log` with patches shown with difftastic.
+    dl = -c diff.external=difft log --ext-diff
+    dlog = -c diff.external=difft log --ext-diff
+    # Show the most recent commit with difftastic.
+    ds = -c diff.external=difft show --ext-diff
+    dshow = -c diff.external=difft show --ext-diff
+    # `git diff` with difftastic.
+    dft = -c diff.external=difft diff
+    ddiff = -c diff.external=difft diff
+    difft = -c diff.external=difft diff
 
 [filter "lfs"]
     clean = git-lfs clean -- %f
