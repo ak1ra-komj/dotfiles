@@ -1,8 +1,18 @@
 #!/bin/sh
 
+code_dir="${HOME}/code"
+test -d "${code_dir}" || mkdir -p "${code_dir}"
+
 git_clone() {
     repo="$1"
     test -n "${repo}" || return
+
+    origin="origin"
+    if [ "$1" = "-f" ] || [ "$1" = "--fork" ]; then
+        origin="upstream"
+        shift 1
+    fi
+
     repo_dir="${code_dir}/$(echo "${repo}" |
         sed -E -e 's%https?://%%' -e 's%^git@%%' -e 's%\.git$%%' -e 's%:%/%')"
 
@@ -16,16 +26,4 @@ git_clone() {
     fi
 }
 
-main() {
-    code_dir="${HOME}/code"
-
-    origin="origin"
-    if [ "$1" = "-f" ] || [ "$1" = "--fork" ]; then
-        origin="upstream"
-        shift 1
-    fi
-
-    git_clone "$@"
-}
-
-main "$@"
+git_clone "$@"
