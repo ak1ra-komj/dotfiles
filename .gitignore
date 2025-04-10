@@ -173,4 +173,6 @@ poetry.toml
 # End of https://www.toptal.com/developers/gitignore/api/python
 
 examples/
-*.ics
+
+# dotsh/bin/rsync-home-dir.sh
+dotsh/bin/rsync-home-dir.env
