@@ -28,10 +28,10 @@ declare -a smartctl_error_msgs=(
 
 check_smartctl_error_msgs() {
     # https://linux.die.net/man/8/smartctl
-    # The exit status of smartctl are defined by a bitmask
-    status="$1"
+    # The error_code of smartctl are defined by a bitmask
+    local error_code="$1"
     for ((i = 0; i < 8; i++)); do
-        if [ "$((status & 2 ** i && 1))" -eq 1 ]; then
+        if [ "$((error_code & 2 ** i && 1))" -eq 1 ]; then
             printf "%s\n" "${smartctl_error_msgs[$i]}" 1>&2
         fi
     done
@@ -41,13 +41,9 @@ get_smartctl_info() {
     for disk in "${disks[@]}"; do
         printf "====== %s ======\n" "${disk}"
 
-        status=0
-        disk_smart="$(smartctl --all --json "${disk}" | jq -c .)" || status="$?"
-        check_smartctl_error_msgs "${status}"
-        if [ "${status}" -ne 0 ]; then
-            printf "\n"
-            continue
-        fi
+        error_code=0
+        disk_smart="$(smartctl --all --json "${disk}" | jq -c .)" || error_code="$?"
+        check_smartctl_error_msgs "${error_code}"
 
         model_family="$(jq -r .model_family <<<"${disk_smart}")"
         printf "%-32s %s\n" "model_family" "${model_family}"
