@@ -73,9 +73,9 @@ get_smartctl_info() {
         # Reallocated_Sector_Ct
         reallocated_sector_ct="$(jq -r '.ata_smart_attributes.table[] | select(.name=="Reallocated_Sector_Ct").raw.string' <<<"${disk_smart}")"
         if [[ -n "${reallocated_sector_ct}" && "${reallocated_sector_ct}" -gt 0 ]]; then
-            printf "\e[31m%-32s %s\e[0m\n" "Reallocated_Sector_Ct" "${reallocated_sector_ct}"  # Red color
+            printf "\e[31m%-32s %s\e[0m\n" "reallocated_sector_ct" "${reallocated_sector_ct}"  # Red color
         else
-            printf "%-32s %s\n" "Reallocated_Sector_Ct" "${reallocated_sector_ct}"
+            printf "%-32s %s\n" "reallocated_sector_ct" "${reallocated_sector_ct}"
         fi
 
         ata_smart_error_log="$(jq -r .ata_smart_error_log.summary.count <<<"${disk_smart}")"
