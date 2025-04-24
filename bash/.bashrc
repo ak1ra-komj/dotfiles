@@ -133,20 +133,16 @@ if ! shopt -oq posix; then
     fi
 fi
 
-# ensure local PATH
-PATH=~/bin:~/.local/bin:$PATH
-export PATH
-
-# custom bash functions
-# test -f ~/.bash_functions && . ~/.bash_functions
-
 test -d ~/.ssh/ssh-agent && {
+    # /etc/ssh/sshd_config: 受限于 MaxAuthTries, 其默认值是 6
+    # 当 ~/.ssh/ssh-agent 目录中超过 MaxAuthTries 个公钥时会报错, 因为其本质上是一个个去尝试
     readarray -t ssh_agent < <(find ~/.ssh/ssh-agent -type f ! -name '*.pub')
     if command -v keychain >/dev/null; then
-        # keychain: re-use ssh-agent and/or gpg-agent between logins
         # apt install keychain
+        # keychain: re-use ssh-agent and/or gpg-agent between logins
         eval "$(keychain --eval --agents ssh "${ssh_agent[@]}")"
     else
+        # apt install openssh-client
         # ssh-agent: setup SSH_AUTH_SOCK & SSH_AGENT_PID env
         eval "$(ssh-agent)"
         ssh-add "${ssh_agent[@]}" 2>/dev/null
