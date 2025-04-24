@@ -215,3 +215,18 @@ command -v tccli >/dev/null && {
 
 # aliyun-cli
 # https://github.com/aliyun/aliyun-cli
+
+# asdf-vm/asdf
+# go install github.com/asdf-vm/asdf/cmd/asdf@latest
+# https://asdf-vm.com/guide/getting-started.html
+command -v asdf >/dev/null && {
+    export PATH="${ASDF_DATA_DIR:-${HOME}/.asdf}/shims:${PATH}"
+    . <(asdf completion bash)
+}
+
+# gitlab-org/cli
+# asdf plugin add glab; asdf install glab latest; asdf global glab latest
+# https://gitlab.com/gitlab-org/cli/-/tree/main/docs/source/completion
+command -v glab >/dev/null && {
+    . <(glab completion -s bash)
+}
