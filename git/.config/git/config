@@ -13,6 +13,8 @@
     skippedCherryPicks = false
 
 [alias]
+    # The gitignore templates used in this project have not been updated for a long time
+    # https://github.com/toptal/gitignore/tree/0a7fb01801c62ca53ab2dcd73ab96185e159e864
     ignore = "!gi() { curl -sL https://www.toptal.com/developers/gitignore/api/$@ ;}; gi"
 
     # https://difftastic.wilfred.me.uk/git.html
