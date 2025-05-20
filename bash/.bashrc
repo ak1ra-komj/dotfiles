@@ -25,7 +25,9 @@ HISTSIZE=10000
 HISTFILESIZE=400000000
 
 # /etc/os-release
-OS_RELEASE_ID="$(awk -F= '/^ID=/ {print $2}' /etc/os-release | tr '[:upper:]' '[:lower:]')"
+if [ -f /etc/os-release ]; then
+    OS_RELEASE_ID="$(awk -F= '/^ID=/ {print $2}' /etc/os-release | tr '[:upper:]' '[:lower:]')"
+fi
 
 # check the window size after each command and, if necessary,
 # update the values of LINES and COLUMNS.
