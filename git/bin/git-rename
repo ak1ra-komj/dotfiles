@@ -1,97 +1,12 @@
 #!/bin/sh
 # author: ak1ra
-# date: 2022-04-25
-# Update git GIT_COMMITTER_NAME/GIT_COMMITTER_EMAIL using git filter-branch
-# ref: https://help.github.com/en/github/using-git/changing-author-info
-# ref: https://developer.github.com/v3/users/
+# date: 2025-06-04
 
-require_command() {
-    for c in "$@"; do
-        command -v "$c" >/dev/null || {
-            echo >&2 "required command '$c' is not installed, aborting..."
-            exit 1
-        }
-    done
-}
+cat <<EOF
+    DEPRECATED WARNING: use git-filter-repo mailmap instead!
 
-usage() {
-    this="$(readlink -f "$0")"
+        git-filter-repo --mailmap <(echo "alice <alice@example.com> bob <bob@example.net>")
 
-    cat <<EOF
-在执行脚本前, 需要先设置好**必要**的环境变量, 所有可以设置的环境变量为,
-
-export OLD_GIT_COMMITTER_EMAIL=old-committer@example.com
-export OLD_GIT_AUTHOR_EMAIL=old-author@example.com
-
-export NEW_GIT_COMMITTER_NAME=new-committer
-export NEW_GIT_COMMITTER_EMAIL=new-committer@example.com
-
-export NEW_GIT_AUTHOR_NAME=new-author
-export NEW_GIT_AUTHOR_EMAIL=new-author@example.com
-
-其中, OLD_GIT_COMMITTER_EMAIL 和 NEW_GIT_COMMITTER_EMAIL 是必须的, 如,
-
-OLD_GIT_COMMITTER_EMAIL=bob@example.com NEW_GIT_COMMITTER_EMAIL=alice@example.com $this
+    Ref: https://htmlpreview.github.io/?https://raw.githubusercontent.com/newren/git-filter-repo/docs/html/gitmailmap.html
 
 EOF
-    exit 1
-}
-
-print_settings() {
-    cat <<EOF
-
-OLD_GIT_COMMITTER_EMAIL = $OLD_GIT_COMMITTER_EMAIL
-OLD_GIT_AUTHOR_EMAIL    = $OLD_GIT_AUTHOR_EMAIL
-
-NEW_GIT_COMMITTER_NAME  = $NEW_GIT_COMMITTER_NAME
-NEW_GIT_COMMITTER_EMAIL = $NEW_GIT_COMMITTER_EMAIL
-
-NEW_GIT_AUTHOR_NAME     = $NEW_GIT_AUTHOR_NAME
-NEW_GIT_AUTHOR_EMAIL    = $NEW_GIT_AUTHOR_EMAIL
-
-EOF
-}
-
-git_rename() {
-    git filter-branch --env-filter '
-        if [ "$GIT_COMMITTER_EMAIL" = "$OLD_GIT_COMMITTER_EMAIL" ]; then
-            export GIT_COMMITTER_NAME="$NEW_GIT_COMMITTER_NAME"
-            export GIT_COMMITTER_EMAIL="$NEW_GIT_COMMITTER_EMAIL"
-        fi
-        if [ "$GIT_AUTHOR_EMAIL" = "$OLD_GIT_AUTHOR_EMAIL" ]; then
-            export GIT_AUTHOR_NAME="$NEW_GIT_AUTHOR_NAME"
-            export GIT_AUTHOR_EMAIL="$NEW_GIT_AUTHOR_EMAIL"
-        fi
-    ' --tag-name-filter cat -- --branches --tags
-}
-
-main() {
-    export OLD_GIT_COMMITTER_EMAIL="${OLD_GIT_COMMITTER_EMAIL}"
-    test -n "$OLD_GIT_COMMITTER_EMAIL" || usage
-
-    export NEW_GIT_COMMITTER_EMAIL="${NEW_GIT_COMMITTER_EMAIL}"
-    test -n "$NEW_GIT_COMMITTER_EMAIL" || usage
-
-    export OLD_GIT_AUTHOR_EMAIL="${OLD_GIT_AUTHOR_EMAIL}"
-    test -n "$OLD_GIT_AUTHOR_EMAIL" || export OLD_GIT_AUTHOR_EMAIL="${OLD_GIT_COMMITTER_EMAIL}"
-
-    export NEW_GIT_COMMITTER_NAME="${NEW_GIT_COMMITTER_NAME}"
-    test -n "$NEW_GIT_COMMITTER_NAME" || export NEW_GIT_COMMITTER_NAME="${NEW_GIT_COMMITTER_EMAIL%@*}"
-
-    export NEW_GIT_AUTHOR_EMAIL="${NEW_GIT_AUTHOR_EMAIL}"
-    test -n "$NEW_GIT_AUTHOR_EMAIL" || export NEW_GIT_AUTHOR_EMAIL="${NEW_GIT_COMMITTER_EMAIL}"
-
-    export NEW_GIT_AUTHOR_NAME="${NEW_GIT_AUTHOR_NAME}"
-    test -n "$NEW_GIT_AUTHOR_NAME" || export NEW_GIT_AUTHOR_NAME="${NEW_GIT_AUTHOR_EMAIL%@*}"
-
-    print_settings
-    printf "If the above settings is ok, type yes to continue [yes/No] "
-    read -r choice
-    choice=$(echo "$choice" | tr '[:upper:]' '[:lower:]')
-
-    if [ "$choice" = "yes" ]; then
-        git_rename
-    fi
-}
-
-main "$@"
