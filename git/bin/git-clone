@@ -1,29 +1,103 @@
-#!/bin/sh
+#!/bin/bash
+# author: ak1ra
+# date: 2025-06-04
 
-code_dir="${HOME}/code"
-test -d "${code_dir}" || mkdir -p "${code_dir}"
+set -o errexit
 
-git_clone() {
-    repo="$1"
-    test -n "${repo}" || return
-
-    origin="origin"
-    if [ "$1" = "-f" ] || [ "$1" = "--fork" ]; then
-        origin="upstream"
-        shift 1
-    fi
-
-    repo_dir="${code_dir}/$(echo "${repo}" |
-        sed -E -e 's%https?://%%' -e 's%^git@%%' -e 's%\.git$%%' -e 's%:%/%')"
-
-    if [ -d "${repo_dir}" ]; then
-        echo "repo_dir: ${repo_dir} already exist, use 'git fetch --all' instead..." >&2
-        cd "${repo_dir}" || return
-        git fetch --all
-        cd - >/dev/null 2>&1 || return
-    else
-        git clone "--origin=${origin}" "${repo}" "${repo_dir}"
-    fi
+require_command() {
+    for c in "$@"; do
+        command -v "$c" >/dev/null || {
+            echo >&2 "required command '$c' is not installed, aborting..."
+            exit 1
+        }
+    done
 }
 
-git_clone "$@"
+usage() {
+    this="$(basename "$(readlink -f "$0")")"
+
+    cat <<EOF
+Usage:
+    $this [-h|--help] | [-f|--fork] [-H|--hostname] git_url
+
+Options:
+    -h, --help        print this help message
+    -f, --fork        use 'upstream' as origin name
+    -H, --hostname    use git_url hostname as origin name
+
+EOF
+    exit 0
+}
+
+git_clone() {
+    git_url="$1"
+    test -n "${git_url}" || usage
+
+    # convert git_url to POSIX path
+    # git://example.com/user/repo.git
+    # http://example.com/user/repo.git
+    # https://example.com/user/repo.git
+    # git@example.com:user/repo.git
+    # git@example.com:group/subgroup/project.git
+    # ssh://git@example.com:user/repo.git
+    # ssh://git@example.com:group/subgroup/project.git
+    relpath="$(sed -E 's%^(https?://|git://|ssh://)?([^/]+@)?([^/:]+)[/:](.+?)(\.git)?$%\3/\4%' <<<"${git_url}")"
+
+    repo_dir="${base_dir}/${relpath}"
+    if [[ -d "${repo_dir}/.git" ]]; then
+        (
+            set -x
+            git --git-dir="${repo_dir}/.git" fetch --all
+        )
+        return
+    fi
+
+    if [[ "${hostname_flag}" == "true" ]]; then
+        origin="${relpath%%/*}"
+    fi
+
+    (
+        set -x
+        git clone --origin="${origin}" "${git_url}" "${repo_dir}"
+    )
+}
+
+main() {
+    getopt_args="$(getopt --options 'hHf' --longoptions 'help,hostname,fork' -- "$@")"
+    if ! eval set -- "${getopt_args}"; then
+        usage
+    fi
+
+    origin="origin"
+    hostname_flag="false"
+    while true; do
+        case "$1" in
+        -h | --help)
+            usage
+            ;;
+        -H | --hostname)
+            hostname_flag=true
+            shift
+            ;;
+        -f | --fork)
+            origin="upstream"
+            shift
+            ;;
+        --)
+            shift
+            break
+            ;;
+        *)
+            echo "unexpected option: $1"
+            usage
+            ;;
+        esac
+    done
+
+    git_clone "$@"
+}
+
+base_dir="${HOME}/code"
+test -d "${base_dir}" || mkdir -p "${base_dir}"
+
+main "$@"
