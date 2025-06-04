@@ -1,4 +1,9 @@
-#!/bin/bash
+#!/bin/sh
 
-find . -type f -wholename '*/.git/config' \
-    -exec awk -F= '/url = / {print $NF}' {} \; | tr -d ' ' | sort
+git_remote() {
+    find . -type d -name '.git' -print0 | xargs -0 -I git_dir sh -c '
+        git --git-dir=git_dir remote -v
+    '
+}
+
+git_remote "$@"
