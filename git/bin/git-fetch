@@ -2,7 +2,7 @@
 
 git_fetch() {
     find . -type d -name '.git' -print0 | xargs -0 -I git_dir sh -x -c '
-        git --git-dir=git_dir fetch --all
+        GIT_TERMINAL_PROMPT=0 git -c credential.helper= --git-dir=git_dir fetch --all </dev/null || true
     '
 }
 
