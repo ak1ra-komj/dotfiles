@@ -1,8 +1,11 @@
 #!/bin/bash
 # author: ak1ra
-# date: 2025-06-04
+# date: 2025-06-06
 
 set -o errexit
+
+base_dir="${HOME}/code"
+test -d "${base_dir}" || mkdir -p "${base_dir}"
 
 require_command() {
     for c in "$@"; do
@@ -29,19 +32,40 @@ EOF
     exit 0
 }
 
+strip_git_url() {
+    sed -E \
+        -e 's%^((https?|ssh|git):\/\/)?(git@)?([^\/:]+)[\/:]([-_.a-zA-Z0-9\/]+)$%\4/\5%' \
+        -e 's%\.git$%%' -
+}
+
+test_git_urls() {
+    git_urls=(
+        git://github.com/user/repo.git
+        http://github.com/user/repo.git
+        https://github.com/user/repo.git
+        git@github.com:user/repo.git
+        ssh://git@github.com:user/repo.git
+
+        git://gitlab.com/group/subgroup/project.git
+        http://gitlab.com/group/subgroup/project.git
+        https://gitlab.com/group/subgroup/project.git
+        git@gitlab.com:group/subgroup/project.git
+        ssh://git@gitlab.com:group/subgroup/project.git
+
+        https://github.com/user/repo-with-dash.git
+        https://github.com/user/repo_with_underscore.git
+        https://github.com/user/repo.with.dot.git
+    )
+
+    for git_url in "${git_urls[@]}"; do
+        printf "%-50s -> %s\n" "${git_url}" "$(strip_git_url <<<"${git_url}")"
+    done
+}
+
 git_clone() {
     git_url="$1"
     test -n "${git_url}" || usage
-
-    # convert git_url to POSIX path
-    # git://example.com/user/repo.git
-    # http://example.com/user/repo.git
-    # https://example.com/user/repo.git
-    # git@example.com:user/repo.git
-    # git@example.com:group/subgroup/project.git
-    # ssh://git@example.com:user/repo.git
-    # ssh://git@example.com:group/subgroup/project.git
-    relpath="$(sed -E 's%^(https?://|git://|ssh://)?([^/]+@)?([^/:]+)[/:](.+?)(\.git)?$%\3/\4%' <<<"${git_url}")"
+    relpath="$(strip_git_url <<<"${git_url}")"
 
     repo_dir="${base_dir}/${relpath}"
     if [[ -d "${repo_dir}/.git" ]]; then
@@ -63,7 +87,7 @@ git_clone() {
 }
 
 main() {
-    getopt_args="$(getopt --options 'hHf' --longoptions 'help,hostname,fork' -- "$@")"
+    getopt_args="$(getopt --options 'hHft' --longoptions 'help,hostname,fork,test' -- "$@")"
     if ! eval set -- "${getopt_args}"; then
         usage
     fi
@@ -83,6 +107,10 @@ main() {
             origin="upstream"
             shift
             ;;
+        -t | --test)
+            test_git_urls
+            return
+            ;;
         --)
             shift
             break
@@ -96,8 +124,5 @@ main() {
 
     git_clone "$@"
 }
-
-base_dir="${HOME}/code"
-test -d "${base_dir}" || mkdir -p "${base_dir}"
 
 main "$@"
