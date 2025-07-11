@@ -41,6 +41,14 @@ alias ytdl='youtube-dl --external-downloader=aria2c --external-downloader-args="
 ## pipx install yt-dlp
 alias ytdlp='yt-dlp --downloader=aria2c --downloader-args="aria2c:--max-concurrent-downloads=8 --max-connection-per-server=4" --embed-subs --sub-langs="all,-live_chat"'
 
+# apt install bat
+# https://github.com/sharkdp/bat
+command -v batcat >/dev/null && {
+    alias less='batcat --style=plain'
+    alias more='batcat --style=plain'
+    alias cat='batcat --style=plain --paging=never'
+}
+
 # Kubenetes
 command -v kubectl >/dev/null && {
     alias k="kubectl"
