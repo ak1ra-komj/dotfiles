@@ -3,9 +3,7 @@
 # date: 2023-07-31
 # kube-dump Kubernetes resource manifests in particular namespace
 
-set -o errexit
-set -o nounset
-set -o pipefail
+set -o errexit -o nounset -o pipefail
 
 usage() {
     cat <<EOF
@@ -35,11 +33,12 @@ kube_dump() {
     # https://stackoverflow.com/a/42636398
     # with_entries(select( .key | test(PATTERN) | not))
     # walk(if type == "object" then with_entries(select(.key | test(PATTERN) | not)) else . end)
-    jq_cattle_regex='^((authz\\.cluster|secret\\.user|field|lifecycle|listener|workload)\\.)?cattle\\.io\\/'
+    # jq uses the Oniguruma regular expression library, as do PHP, ..., so the description here will focus on jq specifics.
+    jq_cattle_regex='^(?:(?:authz\.cluster|secret\.user|field|lifecycle|listener|workload)\.)?cattle\.io\/'
 
     if ! kubectl get namespaces --no-headers --output=name | grep -qE "namespace/${namespace}$"; then
         echo "namespace: ${namespace} does not exist, ignore..."
-        return 1
+        return
     fi
 
     for api_resource in "${api_resources[@]}"; do
@@ -49,9 +48,11 @@ kube_dump() {
         for resource in "${resources_with_prefix[@]}"; do
             resource_dir="${namespace}/${api_resource}"
             test -d "${resource_dir}" || mkdir -p "${resource_dir}"
+            # 特别注意: --arg name value 不能添加 = 连接, 之前踩过好几次坑, 怎么使用 = 连接反而不生效呢?
+            # jq 中的 test($jq_cattle_regex) 理应无需添加 "", 因为 --arg name value 传入的变量都会被当作 字符串 处理
             kubectl --namespace "${namespace}" get "${resource}" --output=json |
-                jq --indent 4 --sort-keys 'walk(
-                    if type == "object" then with_entries(select(.key | test("'"$jq_cattle_regex"'") | not)) else . end)
+                jq --arg jq_cattle_regex "${jq_cattle_regex}" --indent 4 --sort-keys 'walk(
+                    if type == "object" then with_entries(select(.key | test($jq_cattle_regex) | not)) else . end)
                     | del(
                         .metadata.namespace,
                         .metadata.annotations."deployment.kubernetes.io/revision",
