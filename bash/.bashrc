@@ -156,14 +156,25 @@ test -f ~/.http_proxy.json && . ~/.http_proxy.sh
 
 # python3
 # apt install pipx
-# $ sudo activate-global-python-argcomplete
-# Installing bash completion script /etc/bash_completion.d/python-argcomplete
-# use global /etc/bash_completion.d/python-argcomplete instead
-# command -v pipx >/dev/null && eval "$(register-python-argcomplete pipx)"
+# sudo activate-global-python-argcomplete
+
 # pipx install poetry
 # command -v poetry >/dev/null && . <(poetry completions bash)
+
 # pipx install pdm
 command -v pdm >/dev/null && . <(pdm completion bash)
+
+# Load pyenv automatically by appending the following to
+# ~/.bash_profile if it exists, otherwise ~/.profile (for login shells)
+# and ~/.bashrc (for interactive shells):
+command -v pyenv >/dev/null && {
+    PYENV_ROOT="${HOME}/.pyenv"
+    export PYENV_ROOT
+    test -d "${PYENV_ROOT}/bin" && {
+        export PATH="${PYENV_ROOT}/bin:${PATH}"
+    }
+    eval "$(pyenv init - bash)"
+}
 
 # golang
 # sudo ln -s /usr/local/go/bin/* /usr/local/bin
