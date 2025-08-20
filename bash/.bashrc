@@ -167,14 +167,14 @@ command -v pdm >/dev/null && . <(pdm completion bash)
 # Load pyenv automatically by appending the following to
 # ~/.bash_profile if it exists, otherwise ~/.profile (for login shells)
 # and ~/.bashrc (for interactive shells):
-command -v pyenv >/dev/null && {
-    PYENV_ROOT="${HOME}/.pyenv"
-    export PYENV_ROOT
-    test -d "${PYENV_ROOT}/bin" && {
-        export PATH="${PYENV_ROOT}/bin:${PATH}"
-    }
-    eval "$(pyenv init - bash)"
-}
+# command -v pyenv >/dev/null && {
+#     PYENV_ROOT="${HOME}/.pyenv"
+#     export PYENV_ROOT
+#     test -d "${PYENV_ROOT}/bin" && {
+#         export PATH="${PYENV_ROOT}/bin:${PATH}"
+#     }
+#     eval "$(pyenv init - bash)"
+# }
 
 # golang
 # sudo ln -s /usr/local/go/bin/* /usr/local/bin
