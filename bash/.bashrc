@@ -135,6 +135,8 @@ if ! shopt -oq posix; then
     fi
 fi
 
+# ###############################################################
+
 test -d ~/.ssh/ssh-agent && {
     # /etc/ssh/sshd_config: 受限于 MaxAuthTries, 其默认值是 6
     # 当 ~/.ssh/ssh-agent 目录中超过 MaxAuthTries 个公钥时会报错, 因为其本质上是一个个去尝试
@@ -151,9 +153,12 @@ test -d ~/.ssh/ssh-agent && {
     fi
 }
 
-# custom http_proxy / https_proxy
-test -f ~/.http_proxy.json && . ~/.http_proxy.sh
+# ###############################################################
 
+# custom http_proxy / https_proxy
+# test -f ~/.http_proxy.json && . ~/.http_proxy.sh
+
+# ###############################################################
 # python3
 # apt install pipx
 # sudo activate-global-python-argcomplete
@@ -176,6 +181,8 @@ command -v pdm >/dev/null && . <(pdm completion bash)
 #     eval "$(pyenv init - bash)"
 # }
 
+# ###############################################################
+
 # golang
 # sudo ln -s /usr/local/go/bin/* /usr/local/bin
 command -v go >/dev/null && {
@@ -186,17 +193,32 @@ command -v go >/dev/null && {
     # export PATH GOPATH GOPROXY
 }
 
-# rust
+# ###############################################################
+
+# rustup, cargo, rustc
+# rustup 用于安装 toolchain, cargo 是 package manager, rustc 是编译器
 test -s ~/.cargo/env && . ~/.cargo/env
 
-# nvm
+# ###############################################################
+
+# nvm 用于管理不同版本的 nodejs
 # git clone https://github.com/nvm-sh/nvm.git ~/.nvm && bash ~/.nvm/install.sh
-NVM_DIR=~/.nvm
-test -d "${NVM_DIR}" && {
-    export NVM_DIR
-    test -s "${NVM_DIR}/nvm.sh" && . "${NVM_DIR}/nvm.sh"
-    test -s "${NVM_DIR}/bash_completion" && . "${NVM_DIR}/bash_completion"
-}
+# NVM_DIR=~/.nvm
+# test -d "${NVM_DIR}" && {
+#     export NVM_DIR
+#     test -s "${NVM_DIR}/nvm.sh" && . "${NVM_DIR}/nvm.sh"
+#     test -s "${NVM_DIR}/bash_completion" && . "${NVM_DIR}/bash_completion"
+# }
+
+# How to use `npm` package from APT repo?
+# https://stackoverflow.com/a/59227497
+# apt install nodejs npm
+# npm config set prefix '~/.local'
+# npm install -g @google/gemini-cli
+# npm install -g @openai/codex
+command -v codex >/dev/null && . <(codex completion bash)
+
+# ###############################################################
 
 # https://github.com/aws/aws-cli/tree/v2
 command -v aws >/dev/null && {
@@ -208,13 +230,13 @@ command -v aws >/dev/null && {
     fi
 }
 
+# ###############################################################
+
 # gcloud, google-cloud-cli
 # https://cloud.google.com/sdk/docs/install
 # /etc/bash_completion.d/gcloud -> /usr/lib/google-cloud-sdk/completion.bash.inc
 
-# terraform
-# https://www.hashicorp.com/official-packaging-guide
-command -v terraform >/dev/null && complete -C /usr/bin/terraform terraform
+# ###############################################################
 
 # tccli: https://github.com/TencentCloud/tencentcloud-cli
 command -v tccli >/dev/null && {
@@ -229,17 +251,25 @@ command -v tccli >/dev/null && {
 # aliyun-cli
 # https://github.com/aliyun/aliyun-cli
 
-# # asdf-vm/asdf
-# # go install github.com/asdf-vm/asdf/cmd/asdf@latest
-# # https://asdf-vm.com/guide/getting-started.html
+# ###############################################################
+
+# terraform
+# https://www.hashicorp.com/official-packaging-guide
+command -v terraform >/dev/null && complete -C /usr/bin/terraform terraform
+
+# asdf-vm/asdf
+# go install github.com/asdf-vm/asdf/cmd/asdf@latest
+# https://asdf-vm.com/guide/getting-started.html
 # command -v asdf >/dev/null && {
 #     export PATH="${ASDF_DATA_DIR:-${HOME}/.asdf}/shims:${PATH}"
 #     . <(asdf completion bash)
 # }
 
-# # gitlab-org/cli
-# # asdf plugin add glab; asdf install glab latest; asdf global glab latest
-# # https://gitlab.com/gitlab-org/cli/-/tree/main/docs/source/completion
+# gitlab-org/cli
+# asdf plugin add glab; asdf install glab latest; asdf global glab latest
+# https://gitlab.com/gitlab-org/cli/-/tree/main/docs/source/completion
 # command -v glab >/dev/null && {
 #     . <(glab completion -s bash)
 # }
+
+# ###############################################################
