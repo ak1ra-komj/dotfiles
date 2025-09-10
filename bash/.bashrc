@@ -116,7 +116,7 @@ alias l='ls -CF'
 # See /usr/share/doc/bash-doc/examples in the bash-doc package.
 
 if [ -f ~/.bash_aliases ]; then
-    . ~/.bash_aliases
+    source ~/.bash_aliases
 fi
 
 # enable programmable completion features (you don't need to enable
@@ -124,14 +124,14 @@ fi
 # sources /etc/bash.bashrc).
 if [ "$OS_RELEASE_ID" = "freebsd" ]; then
     if [ -n "$PS1" ] && [ -f /usr/local/share/bash-completion/bash_completion.sh ]; then
-        . /usr/local/share/bash-completion/bash_completion.sh
+        source /usr/local/share/bash-completion/bash_completion.sh
     fi
 fi
 if ! shopt -oq posix; then
     if [ -f /usr/share/bash-completion/bash_completion ]; then
-        . /usr/share/bash-completion/bash_completion
+        source /usr/share/bash-completion/bash_completion
     elif [ -f /etc/bash_completion ]; then
-        . /etc/bash_completion
+        source /etc/bash_completion
     fi
 fi
 
@@ -156,7 +156,7 @@ test -d ~/.ssh/ssh-agent && {
 # ###############################################################
 
 # custom http_proxy / https_proxy
-# test -f ~/.http_proxy.json && . ~/.http_proxy.sh
+# test -f ~/.http_proxy.json && source ~/.http_proxy.sh
 
 # ###############################################################
 # python3
@@ -164,10 +164,10 @@ test -d ~/.ssh/ssh-agent && {
 # sudo activate-global-python-argcomplete
 
 # pipx install poetry
-# command -v poetry >/dev/null && . <(poetry completions bash)
+# command -v poetry >/dev/null && source <(poetry completions bash)
 
 # pipx install pdm
-command -v pdm >/dev/null && . <(pdm completion bash)
+command -v pdm >/dev/null && source <(pdm completion bash)
 
 # Load pyenv automatically by appending the following to
 # ~/.bash_profile if it exists, otherwise ~/.profile (for login shells)
@@ -197,7 +197,17 @@ command -v go >/dev/null && {
 
 # rustup, cargo, rustc
 # rustup 用于安装 toolchain, cargo 是 package manager, rustc 是编译器
-test -s ~/.cargo/env && . ~/.cargo/env
+test -s ~/.cargo/env && source ~/.cargo/env
+
+# https://github.com/jj-vcs/jj
+# https://jj-vcs.github.io/jj/latest/install-and-setup/#bash
+command -v jj >/dev/null && {
+    # Standard
+    # source <(jj util completion bash)
+    # Dynamic
+    # Generally, dynamic completions provide a much better completion experience.
+    source <(COMPLETE=bash jj)
+}
 
 # ###############################################################
 
@@ -216,7 +226,7 @@ test -s ~/.cargo/env && . ~/.cargo/env
 # npm config set prefix '~/.local'
 # npm install -g @google/gemini-cli
 # npm install -g @openai/codex
-command -v codex >/dev/null && . <(codex completion bash)
+command -v codex >/dev/null && source <(codex completion bash)
 
 # ###############################################################
 
@@ -262,14 +272,14 @@ command -v terraform >/dev/null && complete -C /usr/bin/terraform terraform
 # https://asdf-vm.com/guide/getting-started.html
 # command -v asdf >/dev/null && {
 #     export PATH="${ASDF_DATA_DIR:-${HOME}/.asdf}/shims:${PATH}"
-#     . <(asdf completion bash)
+#     source <(asdf completion bash)
 # }
 
 # gitlab-org/cli
 # asdf plugin add glab; asdf install glab latest; asdf global glab latest
 # https://gitlab.com/gitlab-org/cli/-/tree/main/docs/source/completion
 # command -v glab >/dev/null && {
-#     . <(glab completion -s bash)
+#     source <(glab completion -s bash)
 # }
 
 # ###############################################################
