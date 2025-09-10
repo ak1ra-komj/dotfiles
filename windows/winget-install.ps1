@@ -9,7 +9,6 @@
     "7zip.7zip"
     "ShareX.ShareX"
     "voidtools.Everything"
-    "KeePassXCTeam.KeePassXC"
 
     "Notepad++.Notepad++"
     "Rizonesoft.Notepad3"
@@ -20,14 +19,20 @@
     "Microsoft.WindowsTerminal"
 
     "Python.Python.3.13"
-    "Microsoft.OpenJDK.17"
-    "AutoHotkey.AutoHotkey"
+    "Microsoft.OpenJDK.21"
+
+    "mvdan.shfmt"
+    "astral-sh.ruff"
+    "astral-sh.uv"
+    "jj-vcs.jj"
 
     "Gyan.FFmpeg"
     "ImageMagick.ImageMagick"
+    "MediaArea.MediaInfo.GUI"
+    "PeterPawlowski.foobar2000"
+
     "ch.LosslessCut"
     "OBSProject.OBSStudio"
-    "PeterPawlowski.foobar2000"
 
     "WireGuard.WireGuard"
     "CrystalDewWorld.CrystalDiskInfo"
@@ -35,9 +40,16 @@
     "FastCopy.FastCopy"
     "JAMSoftware.TreeSize.Free"
 
-    "HeidiSQL.HeidiSQL"
-    "MongoDB.Compass.Isolated"
-    "qishibo.AnotherRedisDesktopManager"
+    # "AutoHotkey.AutoHotkey"
+    # "AntSoftware.AntRenamer"
+
+    # "Fork.Fork"
+    # "oldj.switchhosts"
+    # "LocalSend.LocalSend"
+
+    # "HeidiSQL.HeidiSQL"
+    # "MongoDB.Compass.Isolated"
+    # "qishibo.AnotherRedisDesktopManager"
 )
 
 foreach ($package in $packages) {
