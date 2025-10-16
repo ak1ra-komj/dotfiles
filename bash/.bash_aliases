@@ -1,7 +1,10 @@
 # shellcheck shell=bash
 
 alias fd="find . -wholename"
-alias rg="grep -Er"
+
+# apt install ripgrep
+# https://github.com/BurntSushi/ripgrep
+# alias rg="grep -Er"
 
 # git
 alias g="git status"
