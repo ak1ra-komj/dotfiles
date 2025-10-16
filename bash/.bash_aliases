@@ -28,7 +28,10 @@ alias gl="git log --abbrev-commit --graph --pretty=tformat:'%Cred%h%Creset -%C(a
 # -nH, --no-host-directories, Disable generation of host-prefixed directories.
 # -N, --timestamping, Turn on time-stamping.
 # -m, --mirror, Turn on options suitable for mirroring, equivalent to "-r -N -l inf --no-remove-listing"
-alias crawler="wget -c -r -k -x -np -e robots=off"
+alias wget-crawler="wget --continue --recursive --convert-links --force-directories --no-parent --execute=robots=off"
+
+## curl
+alias curl-header="curl --silent --dump-header % --output /dev/null"
 
 # tmux
 alias tm="tmux attach || tmux"
