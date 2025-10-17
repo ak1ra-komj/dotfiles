@@ -34,7 +34,7 @@ alias gl="git log --abbrev-commit --graph --pretty=tformat:'%Cred%h%Creset -%C(a
 alias wget-crawler="wget --continue --recursive --convert-links --force-directories --no-parent --execute=robots=off"
 
 ## curl
-alias curl-header="curl --silent --dump-header % --output /dev/null"
+# alias curl-header="curl -s --dump-header % -o /dev/null"
 
 # tmux
 alias tm="tmux attach || tmux"
