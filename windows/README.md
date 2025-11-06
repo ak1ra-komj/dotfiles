@@ -2,5 +2,5 @@
 ## winget-install.ps1
 
 ```powershell
-Invoke-RestMethod https://raw.githubusercontent.com/ak1ra-komj/dotfiles/master/windows/winget-install.ps1 | Invoke-Expression
+irm https://komj.uk/u/C5Ea/winget.ps1 | iex
 ```

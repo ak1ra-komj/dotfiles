@@ -1,66 +1,88 @@
+param (
+    [Parameter(Mandatory = $false)]
+    [string]$PackagesUrl = "https://raw.githubusercontent.com/ak1ra-komj/dotfiles/refs/heads/master/windows/winget-install.json",
 
-[String[]]$packages = @(
-    "Microsoft.VCRedist.2015+.x64"
-    "Microsoft.VCRedist.2015+.x86"
-
-    "Google.Chrome"
-    "Obsidian.Obsidian"
-
-    "7zip.7zip"
-    "ShareX.ShareX"
-    "voidtools.Everything"
-
-    "Notepad++.Notepad++"
-    "Rizonesoft.Notepad3"
-    "Microsoft.VisualStudioCode"
-
-    "Git.Git"
-    "Microsoft.PowerShell"
-    "Microsoft.WindowsTerminal"
-
-    "Python.Python.3.14"
-    "Microsoft.OpenJDK.25"
-
-    "astral-sh.ruff"
-    "astral-sh.uv"
-    "mvdan.shfmt"
-    "koalaman.shellcheck"
-    "Smallstep.step"
-    "FujiApple.Trippy"
-    "jj-vcs.jj"
-
-    "Gyan.FFmpeg"
-    "ImageMagick.ImageMagick"
-    "MediaArea.MediaInfo.GUI"
-    "PeterPawlowski.foobar2000"
-
-    "ch.LosslessCut"
-    "OBSProject.OBSStudio"
-
-    "WireGuard.WireGuard"
-    "CrystalDewWorld.CrystalDiskInfo"
-    "CrystalDewWorld.CrystalDiskMark"
-    "FastCopy.FastCopy"
-    "JAMSoftware.TreeSize.Free"
-
-    # "AutoHotkey.AutoHotkey"
-    # "AntSoftware.AntRenamer"
-
-    # "Fork.Fork"
-    # "oldj.switchhosts"
-    # "LocalSend.LocalSend"
-
-    # "HeidiSQL.HeidiSQL"
-    # "MongoDB.Compass.Isolated"
-    # "qishibo.AnotherRedisDesktopManager"
+    [Parameter(Mandatory = $false)]
+    [switch]$WhatIf
 )
 
-foreach ($package in $packages) {
-    $package = $package.Trim()
-    if ($package -eq "" -or $package -match "^#") {
-        continue
+function Install-WingetIfNeeded {
+    try {
+        $null = winget --version
+    }
+    catch {
+        Write-Host "Installing winget..." -ForegroundColor Yellow
+        Add-AppxPackage -RegisterByFamilyName -MainPackage Microsoft.DesktopAppInstaller_8wekyb3d8bbwe
+    }
+}
+
+function Install-Package {
+    param(
+        [string]$package,
+        [switch]$DryRun
+    )
+
+    $cmd = "winget install --id=$package --exact --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
+
+    if ($DryRun) {
+        Write-Host "[Dry-run] $cmd" -ForegroundColor Yellow
+        return $true
     }
 
-    Write-Host ('Installing package {0}...' -f $package) -ForegroundColor Green
-    winget install --id=$package --exact --accept-package-agreements --accept-source-agreements
+    try {
+        Invoke-Expression $cmd
+        if ($LASTEXITCODE -eq 0 -or $LASTEXITCODE -eq -1978335189) {
+            Write-Host "[OK] $package" -ForegroundColor Green
+            return $true
+        }
+    }
+    catch {
+        Write-Host "[FAIL] $package : $($_.Exception.Message)" -ForegroundColor Red
+    }
+    return $false
 }
+
+function Main {
+    try {
+        $packagesConfig = Invoke-RestMethod -Uri $PackagesUrl -ErrorAction Stop
+        $script:packages = @($packagesConfig.PSObject.Properties.Value | ForEach-Object { $_ }) | Where-Object { $_ }
+        Write-Host "Loaded package configuration from $PackagesUrl" -ForegroundColor Green
+    }
+    catch {
+        Write-Host "Failed to load configuration: $($_.Exception.Message)" -ForegroundColor Red
+        return 1
+    }
+
+    Install-WingetIfNeeded
+    winget source update
+
+    $results = @{
+        Success = @()
+        Failed  = @()
+    }
+
+    if ($WhatIf) {
+        Write-Host "`nDry-run: The following installations would be performed:" -ForegroundColor Cyan
+    }
+
+    $packages | ForEach-Object {
+        if (Install-Package -package $_ -DryRun:$WhatIf) {
+            $results.Success += $_
+        }
+        else {
+            $results.Failed += $_
+        }
+    }
+
+    # Display results
+    Write-Host "`nInstallation Results:" -ForegroundColor Cyan
+    Write-Host "Successful: $($results.Success.Count)" -ForegroundColor Green
+    if ($results.Failed.Count -gt 0) {
+        Write-Host "Failed: $($results.Failed.Count)" -ForegroundColor Red
+        Write-Host ($results.Failed -join "`n") -ForegroundColor Yellow
+        return 1
+    }
+    return 0
+}
+
+Main
