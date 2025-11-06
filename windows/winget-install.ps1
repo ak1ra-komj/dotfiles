@@ -18,12 +18,15 @@
     "Microsoft.PowerShell"
     "Microsoft.WindowsTerminal"
 
-    "Python.Python.3.13"
-    "Microsoft.OpenJDK.21"
+    "Python.Python.3.14"
+    "Microsoft.OpenJDK.25"
 
-    "mvdan.shfmt"
     "astral-sh.ruff"
     "astral-sh.uv"
+    "mvdan.shfmt"
+    "koalaman.shellcheck"
+    "Smallstep.step"
+    "FujiApple.Trippy"
     "jj-vcs.jj"
 
     "Gyan.FFmpeg"
