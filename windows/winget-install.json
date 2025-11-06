@@ -1,0 +1,46 @@
+{
+    "essentials": [
+        "Microsoft.VCRedist.2015+.x64",
+        "Microsoft.VCRedist.2015+.x86",
+        "7zip.7zip"
+    ],
+    "misc": [
+        "Google.Chrome",
+        "Obsidian.Obsidian",
+        "ShareX.ShareX",
+        "voidtools.Everything",
+        "WireGuard.WireGuard",
+        "CrystalDewWorld.CrystalDiskInfo",
+        "CrystalDewWorld.CrystalDiskMark",
+        "FastCopy.FastCopy",
+        "JAMSoftware.TreeSize.Free"
+    ],
+    "dev": [
+        "Notepad++.Notepad++",
+        "Rizonesoft.Notepad3",
+        "Microsoft.VisualStudioCode",
+        "Git.Git",
+        "Microsoft.PowerShell",
+        "Microsoft.WindowsTerminal",
+        "Python.Python.3.14",
+        "Microsoft.OpenJDK.25"
+    ],
+    "cli": [
+        "jj-vcs.jj",
+        "astral-sh.ruff",
+        "astral-sh.uv",
+        "mvdan.shfmt",
+        "koalaman.shellcheck",
+        "Smallstep.step",
+        "FujiApple.Trippy",
+        "restic.restic"
+    ],
+    "media": [
+        "Gyan.FFmpeg",
+        "ImageMagick.ImageMagick",
+        "MediaArea.MediaInfo.GUI",
+        "PeterPawlowski.foobar2000",
+        "OBSProject.OBSStudio",
+        "ch.LosslessCut"
+    ]
+}
