@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# https://github.com/SharzyL/pastebin-worker/blob/b6e0f6e238287fc5db4a08b22d230a968804d33f/scripts/pb
+# https://github.com/SharzyL/pastebin-worker/blob/c442d766fb867dba38eacd8bc7c39e3769079714/scripts/pb
 
 domain="${PB_DOMAIN:-https://komj.uk}"
 hist_file="${XDG_CONFIG_DIR:-$HOME/.config}/pb_hist"
@@ -172,9 +172,9 @@ pb_post() {
     jq . "$tmp_file"
 
     # record history
-    admin_url=$(jq -r '.admin' "$tmp_file")
-    admin_path=${admin_url##*/}
-    echo "$admin_path" >> "$hist_file"
+    manage_url=$(jq -r '.manageUrl' "$tmp_file")
+    manage_path=${manage_url##*/}
+    echo "$manage_path" >> "$hist_file"
 
     # copy URL to clipboard
     url=$(jq -r '.url' "$tmp_file")
@@ -244,9 +244,9 @@ pb_update() {
     jq . "$tmp_file" 2>/dev/null || _die "$(cat "$tmp_file")"
 
     # record history
-    admin_url=$(jq -r '.admin' "$tmp_file")
-    admin_path=${admin_url##*/}
-    echo "$admin_path" >> "$hist_file"
+    manage_url=$(jq -r '.manageUrl' "$tmp_file")
+    manage_path=${manage_url##*/}
+    echo "$manage_path" >> "$hist_file"
 
     # copy URL to clipboard
     url=$(jq -r '.url' "$tmp_file")
