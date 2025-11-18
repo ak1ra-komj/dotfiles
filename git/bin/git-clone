@@ -4,6 +4,8 @@
 
 set -o errexit
 
+script_name="$(basename "$(readlink -f "$0")")"
+
 base_dir="${HOME}/code"
 test -d "${base_dir}" || mkdir -p "${base_dir}"
 
@@ -17,11 +19,9 @@ require_command() {
 }
 
 usage() {
-    this="$(basename "$(readlink -f "$0")")"
-
     cat <<EOF
 Usage:
-    $this [-h|--help] | [-f|--fork] [-H|--hostname] git_url
+    $script_name [-h|--help] | [-f|--fork] [-H|--hostname] git_url
 
 Options:
     -h, --help        print this help message
@@ -87,8 +87,8 @@ git_clone() {
 }
 
 main() {
-    getopt_args="$(getopt --options 'hHft' --longoptions 'help,hostname,fork,test' -- "$@")"
-    if ! eval set -- "${getopt_args}"; then
+    ARGS="$(getopt --options 'hHft' --longoptions 'help,hostname,fork,test' -- "$@")"
+    if ! eval set -- "${ARGS}"; then
         usage
     fi
 
@@ -96,29 +96,29 @@ main() {
     hostname_flag="false"
     while true; do
         case "$1" in
-        -h | --help)
-            usage
-            ;;
-        -H | --hostname)
-            hostname_flag=true
-            shift
-            ;;
-        -f | --fork)
-            origin="upstream"
-            shift
-            ;;
-        -t | --test)
-            test_git_urls
-            return
-            ;;
-        --)
-            shift
-            break
-            ;;
-        *)
-            echo "unexpected option: $1"
-            usage
-            ;;
+            -h | --help)
+                usage
+                ;;
+            -H | --hostname)
+                hostname_flag=true
+                shift
+                ;;
+            -f | --fork)
+                origin="upstream"
+                shift
+                ;;
+            -t | --test)
+                test_git_urls
+                return
+                ;;
+            --)
+                shift
+                break
+                ;;
+            *)
+                echo "unexpected option: $1"
+                usage
+                ;;
         esac
     done
 

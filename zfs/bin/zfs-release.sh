@@ -3,9 +3,9 @@
 # date: 2024-11-15
 
 set -o errexit -o nounset -o pipefail
+script_name="$(basename "$(readlink -f "$0")")"
 
 usage() {
-    this="$(basename "$(readlink -f "$0")")"
     cat <<EOF
 Usage:
     ${this} <rootfs>

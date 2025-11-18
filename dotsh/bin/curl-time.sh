@@ -11,4 +11,3 @@ curl -w @- -o /dev/null -s "$@" <<'EOF'
                     ----------\n
          time_total:  %{time_total}\n
 EOF
-

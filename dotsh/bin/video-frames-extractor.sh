@@ -6,6 +6,8 @@
 
 set -o errexit
 
+script_name="$(basename "$(readlink -f "$0")")"
+
 require_command() {
     for c in "$@"; do
         command -v "$c" >/dev/null || {
@@ -16,11 +18,9 @@ require_command() {
 }
 
 usage() {
-    this="$(basename $(readlink -f "$0"))"
-
     cat <<EOF
 Usage:
-    $this [--dry-run] [--sseof SECONDS] FILE [FILE [FILE...]]
+    $script_name [--dry-run] [--sseof SECONDS] FILE [FILE [FILE...]]
 
 Options:
     -d, --dry-run       dry run mode, only print 'ffmpeg' commands
@@ -71,32 +71,32 @@ main() {
     dry_run=false
     sseof=3
 
-    getopt_args="$(getopt -a -o 'dhs:' -l 'dry-run,help,sseof:' -- "$@")"
-    if ! eval set -- "${getopt_args}"; then
+    ARGS="$(getopt -a -o 'dhs:' -l 'dry-run,help,sseof:' -- "$@")"
+    if ! eval set -- "${ARGS}"; then
         usage
     fi
 
     while true; do
         case "$1" in
-        -d | --dry-run)
-            dry_run=true
-            shift
-            ;;
-        -s | --sseof)
-            sseof="$2"
-            shift 2
-            ;;
-        -h | --help)
-            usage
-            ;;
-        --)
-            shift
-            break
-            ;;
-        *)
-            echo "unexpected option: $1"
-            usage
-            ;;
+            -d | --dry-run)
+                dry_run=true
+                shift
+                ;;
+            -s | --sseof)
+                sseof="$2"
+                shift 2
+                ;;
+            -h | --help)
+                usage
+                ;;
+            --)
+                shift
+                break
+                ;;
+            *)
+                echo "unexpected option: $1"
+                usage
+                ;;
         esac
     done
 

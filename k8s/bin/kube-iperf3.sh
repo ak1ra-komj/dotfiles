@@ -5,7 +5,8 @@
 
 set -o errexit -o nounset -o pipefail
 
-this="$(basename "$(readlink -f "$0")")"
+script_name="$(basename "$(readlink -f "$0")")"
+
 iperf3_server_ns="iperf3-server"
 iperf3_client_ns="iperf3-client"
 iperf3_image="ghcr.io/ak1ra-lab/iperf3"
@@ -13,16 +14,16 @@ iperf3_image="ghcr.io/ak1ra-lab/iperf3"
 usage() {
     cat <<EOF
 Usage:
-    ./$this [init] | [iperf3 options]
+    $script_name [init] | [iperf3 options]
 
-    Use '$this init' to create iperf3-server and iperf3-client DaemonSet on Kubernetes,
+    Use '$script_name init' to create iperf3-server and iperf3-client DaemonSet on Kubernetes,
     The remaining options will pass to iperf3 client pod directly.
 
     The iperf3 test results will be saved in the output/ directory of the current directory.
 
 Examples:
-    ./$this -t 30
-    ./$this -t 120 -R
+    $script_name -t 30
+    $script_name -t 120 -R
 
 EOF
     exit 0
@@ -119,7 +120,7 @@ kubectl_exec_iperf3() {
     mapfile -t server_pods < <(kubectl -n "$iperf3_server_ns" -l app=iperf3-server get pods --no-headers -o json | jq -c .items[])
 
     if [[ "${#client_pods[@]}" -eq 0 ]] || [[ "${#server_pods[@]}" -eq 0 ]]; then
-        echo "No iperf3 client pods or server pods can be found... Use './$this init' to create it"
+        echo "No iperf3 client pods or server pods can be found... Use './$script_name init' to create it"
         exit 1
     fi
 

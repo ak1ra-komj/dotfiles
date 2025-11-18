@@ -4,6 +4,8 @@
 
 set -o errexit
 
+script_name="$(basename "$(readlink -f "$0")")"
+
 require_command() {
     for c in "$@"; do
         command -v "$c" >/dev/null || {
@@ -14,11 +16,9 @@ require_command() {
 }
 
 usage() {
-    this="$(basename $(readlink -f "$0"))"
-
     cat <<EOF
 Usage:
-    $this [--dry-run] [--codec 'subtitle|audio|video'] FILE [FILE [FILE...]]
+    $script_name [--dry-run] [--codec 'subtitle|audio|video'] FILE [FILE [FILE...]]
 
 Options:
     -c, --codec         this is an 'egrep' regex pattern, indicate stream codec_type to select,
@@ -28,11 +28,11 @@ Options:
 
 Examples:
     # extract subtitles from input.mkv
-    $this -c subtitle input.mkv
+    $script_name -c subtitle input.mkv
 
     # You can also use shell glob, for example,
     # extract subtitles and audio from *.mkv and *.mp4 files with shell glob expansion
-    $this -c 'subtitle|audio' *.mkv *.mp4
+    $script_name -c 'subtitle|audio' *.mkv *.mp4
 
 EOF
     exit 0
@@ -78,32 +78,32 @@ main() {
     dry_run=false
     codec_type="subtitle"
 
-    getopt_args="$(getopt -a -o 'c:dh' -l 'codec:dry-run,help' -- "$@")"
-    if ! eval set -- "${getopt_args}"; then
+    ARGS="$(getopt -a -o 'c:dh' -l 'codec:dry-run,help' -- "$@")"
+    if ! eval set -- "${ARGS}"; then
         usage
     fi
 
     while true; do
         case "$1" in
-        -c | --codec)
-            codec_type="$2"
-            shift 2
-            ;;
-        -d | --dry-run)
-            dry_run=true
-            shift
-            ;;
-        -h | --help)
-            usage
-            ;;
-        --)
-            shift
-            break
-            ;;
-        *)
-            echo "unexpected option: $1"
-            usage
-            ;;
+            -c | --codec)
+                codec_type="$2"
+                shift 2
+                ;;
+            -d | --dry-run)
+                dry_run=true
+                shift
+                ;;
+            -h | --help)
+                usage
+                ;;
+            --)
+                shift
+                break
+                ;;
+            *)
+                echo "unexpected option: $1"
+                usage
+                ;;
         esac
     done
 
