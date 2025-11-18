@@ -17,6 +17,10 @@ shfmt:  ## execute shfmt on all shell script
 	shfmt -f . | \
 		xargs shfmt --write --indent=4 --case-indent
 
+.PHONY: shellcheck
+shellcheck:  ## execute shellcheck on all shell script
+	shfmt -f . | xargs shellcheck
+
 .PHONY: ansible
 ansible:  ## install ansible with pipx
 	command -v ansible >/dev/null || { \
