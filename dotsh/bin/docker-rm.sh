@@ -4,64 +4,132 @@
 # Update:
 #   * 2021-03-12, add --invert-match option
 #   * 2023-06-26, add --help option
+#   * 2025-11-18, refactoring docker-rm.sh
 
-function usage() {
+set -o errexit -o nounset -o pipefail
+
+script_name="$(basename "$(readlink -f "$0")")"
+
+usage() {
     cat <<EOF
 Usage:
-    ./docker-rm.sh [-v|--invert-match] [pattern]
+    $script_name [options] [pattern]
+
+Options:
+    -v, --invert-match      Invert the pattern match
+    --apply                 Actually delete images (default: dry-run)
+    -h, --help              Show this help
 
 Examples:
-    ./docker-rm.sh
-    ./docker-rm.sh 'openjdk-base'
-    ./docker-rm.sh --invert-match 'k8s.gcr.io|quay.io|calico|traefik'
-
-    when no pattern provided, default pattern is '<none>'
-
+    $script_name                       # Dry-run, match <none>
+    $script_name --apply               # Apply deletion of <none> images
+    $script_name 'openjdk-base'        # Dry-run, match 'openjdk-base'
+    $script_name --invert-match 'k8s.gcr.io|quay.io|calico|traefik'
 EOF
     exit 1
 }
 
-function docker_rm() {
-    local exited_containers="$(docker ps -a | awk '/Exited/ {print $1}')"
-    if [ -n "$exited_containers" ]; then
+docker_rm() {
+    mapfile -t exited_containers < <(
+        docker ps -a --format '{{.ID}} {{.Status}}' |
+            awk '/Exited/ {print $1}'
+    )
+
+    if ((${#exited_containers[@]} > 0)); then
+        echo "Exited containers to remove:"
         docker ps -a | awk '/Exited/'
-        docker rm -f $exited_containers
-    fi
-}
-
-function docker_image_rm() {
-    local invert_match=false
-    if [ "$1" == "-v" ] || [ "$1" == "--invert-match" ]; then
-        invert_match=true
-        shift
-    fi
-    local pattern="$1"
-
-    local images_to_del=""
-    test -n "$pattern" || pattern="<none>"
-    if [ "$pattern" == "<none>" ]; then
-        images_to_del="$(docker image ls | awk '/'$pattern'/ {print $3}')"
+        if $apply; then
+            docker rm -f "${exited_containers[@]}"
+        else
+            echo "[Dry-run] Would remove exited containers: ${exited_containers[*]}"
+        fi
     else
-        if [ "$invert_match" == "true" ]; then
-            images_to_del="$(docker image ls | awk 'NR > 1 && !/'$pattern'/ {printf("%s:%s ", $1, $2)}')"
-        else
-            images_to_del="$(docker image ls | awk 'NR > 1 &&  /'$pattern'/ {printf("%s:%s ", $1, $2)}')"
-        fi
-    fi
-
-    if [ -n "$images_to_del" ]; then
-        if [ "$invert_match" == "true" ]; then
-            docker image ls | awk '!/'$pattern'/'
-        else
-            docker image ls | awk ' /'$pattern'/'
-        fi
-        echo $images_to_del | tr ' ' '\n' | xargs -P10 -L1 docker image rm
+        echo "No exited containers found."
     fi
 }
 
-if [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
-    usage
-fi
+docker_image_rm() {
+    # Fetch all images once
+    mapfile -t images < <(
+        docker image ls --format '{{.ID}} {{.Repository}} {{.Tag}}'
+    )
 
-docker_rm
-docker_image_rm $@
+    images_to_del=()
+
+    for entry in "${images[@]}"; do
+        read -r id repo tag <<<"$entry"
+        name="$repo:$tag"
+
+        if [[ "$pattern" == "<none>" ]]; then
+            [[ "$tag" == "<none>" ]] && images_to_del+=("$id")
+            continue
+        fi
+
+        if $invert_match; then
+            [[ ! "$name" =~ $pattern ]] && images_to_del+=("$name")
+        else
+            [[ "$name" =~ $pattern ]] && images_to_del+=("$name")
+        fi
+    done
+
+    if ((${#images_to_del[@]} > 0)); then
+        echo "Images selected for deletion (dry-run by default):"
+        printf "%s\n" "${images_to_del[@]}"
+
+        if $apply; then
+            printf "%s\n" "${images_to_del[@]}" | xargs -P10 -L1 docker image rm
+            echo "Deletion completed."
+        else
+            echo "[Dry-run] No images deleted. Use --apply to actually delete."
+        fi
+    else
+        echo "No images match the pattern."
+    fi
+}
+
+main() {
+    # Default values
+    invert_match=false
+    apply=false
+    pattern="<none>"
+
+    # Use getopt for robust parsing
+    ARGS=$(getopt -o vh --long invert-match,apply,help -n "$script_name" -- "$@")
+    if ! eval set -- "$ARGS"; then
+        usage
+    fi
+
+    while true; do
+        case "$1" in
+            -v | --invert-match)
+                invert_match=true
+                shift
+                ;;
+            --apply)
+                apply=true
+                shift
+                ;;
+            -h | --help)
+                usage
+                ;;
+            --)
+                shift
+                break
+                ;;
+            *)
+                echo "Unknown option: $1"
+                usage
+                ;;
+        esac
+    done
+
+    # Remaining argument is the pattern
+    if [ $# -ge 1 ]; then
+        pattern="$1"
+    fi
+
+    docker_rm
+    docker_image_rm
+}
+
+main "$@"
