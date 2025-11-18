@@ -1,14 +1,14 @@
 #!/bin/bash
 # --exclude=PATTERN, exclude files matching PATTERN
 # --exclude-from=FILE, read exclude patterns from FILE
-# shellcheck shell=bash source=dotsh/bin/rsync-home-dir.env
 
 set -o errexit -o nounset -o pipefail
 
-self="$(readlink -f "${BASH_SOURCE[0]}")"
-env_file="${self%.sh}.env"
+script_name="$(basename "$(readlink -f "$0")")"
+env_file="${script_name%.sh}.env"
 
 test -f "${env_file}" || exit 1
+# shellcheck source=/dev/null
 . "${env_file}"
 
 # set `remote_dir` in env_file

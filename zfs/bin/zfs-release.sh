@@ -8,15 +8,15 @@ script_name="$(basename "$(readlink -f "$0")")"
 usage() {
     cat <<EOF
 Usage:
-    ${this} <rootfs>
+    ${script_name} <rootfs>
 
     exec 'zfs release' command on all snapshots from rootfs recursively,
     don't use this if you don't know what you are doing,
     rootfs can not endswith slash (/).
 
 Examples:
-    ${this} main
-    ${this} main/zrepl/sink
+    ${script_name} main
+    ${script_name} main/zrepl/sink
 
 EOF
     exit 0
