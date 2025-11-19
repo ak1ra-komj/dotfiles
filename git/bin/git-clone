@@ -6,6 +6,7 @@ set -o errexit
 
 script_name="$(basename "$(readlink -f "$0")")"
 
+# New-Item -ItemType Junction -Path $env:USERPROFILE\code -Value D:\code
 base_dir="${HOME}/code"
 test -d "${base_dir}" || mkdir -p "${base_dir}"
 
