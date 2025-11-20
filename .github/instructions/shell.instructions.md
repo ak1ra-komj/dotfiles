@@ -2,13 +2,32 @@
 applyTo: "**/*.sh"
 ---
 
-- Use `#!/usr/bin/env bash` with `set -euo pipefail`.
-- Quote all variable expansions.
-- Use `[[ ... ]]` for tests; `case` for multiple conditions.
-- Group logic into functions; avoid long inline sequences.
-- Handle errors explicitly; check exit codes.
-- Use meaningful names; avoid magic numbers.
-- Prefer POSIX utils; document non-standard deps.
-- Keep scripts idempotent; log actions and errors.
-- Use `getopt` for multiple CLI Args.
-- Pass `shellcheck`; format with `shfmt`.
+## Shell Script Guidelines
+
+### Portability & Compatibility
+
+- Prefer POSIX-compliant syntax when bash-specific features aren't required
+- Use bash features when they significantly simplify implementation
+- Document any non-standard dependencies clearly
+
+### Code Quality & Style
+
+- Quote all variable expansions to prevent word splitting and globbing
+- Use `[[ ... ]]` for conditional tests in bash; `case` for pattern matching
+- Group related logic into well-named functions
+- Use descriptive variable names and avoid magic numbers
+- Maintain idempotency where possible
+
+### Error Handling & Robustness
+
+- Enable strict mode: `set -euo pipefail` or appropriate restrictive options
+- Explicitly check command exit codes
+- Implement comprehensive error handling and logging
+- Log meaningful messages for actions and errors
+
+### Tooling & Maintenance
+
+- Use `getopt` or `getopts` for complex command-line argument parsing
+- Validate scripts with `shellcheck` and address all warnings
+- Format code consistently using `shfmt`
+- Ensure scripts pass all linting and validation checks
