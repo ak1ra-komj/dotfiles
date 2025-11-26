@@ -2,45 +2,108 @@
 
 set -o errexit -o nounset -o pipefail
 
-SCRIPT_NAME="$(basename "$(readlink -f "$0")")"
+SCRIPT_FILE="$(readlink -f "$0")"
+SCRIPT_NAME="$(basename "${SCRIPT_FILE}")"
+
+# Logging configuration
+declare -g LOG_LEVEL="INFO"    # ERROR, WARNING, INFO, DEBUG
+declare -g LOG_FORMAT="simple" # simple, level, full
+
+# Log level priorities
+declare -g -A LOG_PRIORITY=(
+    ["DEBUG"]=10
+    ["INFO"]=20
+    ["WARNING"]=30
+    ["ERROR"]=40
+    ["CRITICAL"]=50
+)
 
 # Logging functions
 log_color() {
     local color="$1"
     shift
-    if [ -t 2 ]; then
+    if [[ -t 2 ]]; then
         printf "\x1b[0;%sm%s\x1b[0m\n" "${color}" "$*" >&2
     else
         printf "%s\n" "$*" >&2
     fi
 }
 
-log_time() {
+log_message() {
     local color="$1"
-    shift
-    log_color "$color" "[$(date -u +%Y-%m-%dT%H:%M:%S+0000)]$*"
+    local level="$2"
+    shift 2
+
+    if [[ "${LOG_PRIORITY[$level]}" -lt "${LOG_PRIORITY[$LOG_LEVEL]}" ]]; then
+        return 0
+    fi
+
+    local message="$*"
+    case "${LOG_FORMAT}" in
+        simple)
+            log_color "${color}" "${message}"
+            ;;
+        level)
+            log_color "${color}" "[${level}] ${message}"
+            ;;
+        full)
+            local timestamp
+            timestamp="$(date -u +%Y-%m-%dT%H:%M:%S+0000)"
+            log_color "${color}" "[${timestamp}][${level}] ${message}"
+            ;;
+        *)
+            log_color "${color}" "${message}"
+            ;;
+    esac
 }
 
 log_error() {
     local RED=31
-    log_color "$RED" "[ERROR] $*"
+    log_message "${RED}" "ERROR" "$@"
+}
+
+log_info() {
+    local GREEN=32
+    log_message "${GREEN}" "INFO" "$@"
 }
 
 log_warning() {
     local YELLOW=33
-    log_color "$YELLOW" "[WARNING] $*"
-}
-
-log_info() {
-    local WHITE=37
-    log_color "$WHITE" "[INFO] $*"
+    log_message "${YELLOW}" "WARNING" "$@"
 }
 
 log_debug() {
     local BLUE=34
-    if [ "${DEBUG:-false}" = "true" ]; then
-        log_color "$BLUE" "[DEBUG] $*"
+    log_message "${BLUE}" "DEBUG" "$@"
+}
+
+log_critical() {
+    local CYAN=36
+    log_message "${CYAN}" "CRITICAL" "$@"
+}
+
+# Set log level with validation
+set_log_level() {
+    local level="${1^^}" # Convert to uppercase
+    if [[ -n "${LOG_PRIORITY[${level}]:-}" ]]; then
+        LOG_LEVEL="${level}"
+    else
+        log_error "Invalid log level: ${1}. Valid levels: ERROR, WARNING, INFO, DEBUG"
+        exit 1
     fi
+}
+
+# Set log format with validation
+set_log_format() {
+    case "$1" in
+        simple | level | full)
+            LOG_FORMAT="$1"
+            ;;
+        *)
+            log_error "Invalid log format: ${1}. Valid formats: simple, level, full"
+            exit 1
+            ;;
+    esac
 }
 
 # Check if required commands are available
@@ -62,15 +125,22 @@ Usage:
     A getopt example shell script
 
 OPTIONS:
-    -h, --help           Show this help message
-    -d, --debug          Enable debug logging
-    -a, --alpha arg      Set ALPHA
-    -b, --bravo arg      Set BRAVO
-    -c, --charlie arg    Set CHARLIE
+    -h, --help                Show this help message
+    --log-level LEVEL         Set log level (ERROR, WARNING, INFO, DEBUG)
+                              Default: INFO
+    --log-format FORMAT       Set log output format (simple, level, full)
+                              simple: message only
+                              level:  [LEVEL] message
+                              full:   [timestamp][LEVEL] message
+                              Default: simple
+    -a, --alpha arg           Set ALPHA
+    -b, --bravo arg           Set BRAVO
+    -c, --charlie arg         Set CHARLIE
 
 EXAMPLES:
     ${SCRIPT_NAME} --alpha bravo
-    ${SCRIPT_NAME} --bravo charlie --charlie alpha
+    ${SCRIPT_NAME} --log-level DEBUG --log-format full
+    ${SCRIPT_NAME} --log-format level
 
 EOF
     exit 0
@@ -79,14 +149,13 @@ EOF
 # Parse command line arguments
 parse_args() {
     local args
-    local options="hda:b:c:"
-    local longoptions="help,debug,alpha:,bravo:,charlie:"
+    local options="ha:b:c:"
+    local longoptions="help,log-level:,log-format:,alpha:,bravo:,charlie:"
     if ! args=$(getopt --options="${options}" --longoptions="${longoptions}" --name="${SCRIPT_NAME}" -- "$@"); then
         usage
     fi
 
     eval set -- "${args}"
-    declare -g DEBUG=false
     declare -g -a REST_ARGS=()
 
     declare -g ALPHA="alpha"
@@ -98,9 +167,13 @@ parse_args() {
             -h | --help)
                 usage
                 ;;
-            -d | --debug)
-                DEBUG="true"
-                shift
+            --log-level)
+                set_log_level "$2"
+                shift 2
+                ;;
+            --log-format)
+                set_log_format "$2"
+                shift 2
                 ;;
             -a | --alpha)
                 ALPHA="$2"
@@ -134,6 +207,7 @@ main() {
 
     parse_args "$@"
 
+    log_debug "Log level: ${LOG_LEVEL}, Log format: ${LOG_FORMAT}"
     log_info "ALPHA=${ALPHA}"
     log_info "BRAVO=${BRAVO}"
     log_info "CHARLIE=${CHARLIE}"
