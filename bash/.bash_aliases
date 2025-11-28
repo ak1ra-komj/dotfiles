@@ -55,6 +55,12 @@ command -v batcat >/dev/null && {
     alias cat='batcat --style=plain --paging=never'
 }
 
+# shfmt
+# https://github.com/mvdan/sh
+command -v shfmt >/dev/null && {
+    alias shfmt="shfmt -w -i=4 -ci"
+}
+
 # Kubenetes
 command -v kubectl >/dev/null && {
     alias k="kubectl"
