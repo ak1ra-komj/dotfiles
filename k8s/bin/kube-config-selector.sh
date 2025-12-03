@@ -1,7 +1,7 @@
 #!/bin/bash
 # author: ak1ra
 # date: 2021-01-22
-# alias kc="source ~/bin/k8s-kubeconfig-selector.sh"
+# alias kc="source ~/bin/kube-config-selector.sh"
 
 # https://www.shellcheck.net/wiki/SC2207
 readarray -t clusters < <(

@@ -14,8 +14,7 @@ help:  ## show this help message
 
 .PHONY: shfmt
 shfmt:  ## execute shfmt on all shell script
-	shfmt -f . | \
-		xargs shfmt --write --indent=4 --case-indent
+	shfmt -f . | xargs shfmt -w -i=4 -ci
 
 .PHONY: shellcheck
 shellcheck:  ## execute shellcheck on all shell script

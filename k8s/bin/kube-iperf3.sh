@@ -1,58 +1,211 @@
 #!/bin/bash
-# date: 2025-08-01
 # author: ak1ra
-# Perform iperf3 tests between Kubernetes Pods
+# date: 2025-08-01
+# description: Perform iperf3 tests between Kubernetes Pods
 
 set -o errexit -o nounset -o pipefail
 
-script_name="$(basename "$(readlink -f "$0")")"
+SCRIPT_FILE="$(readlink -f "$0")"
+SCRIPT_NAME="$(basename "${SCRIPT_FILE}")"
 
-iperf3_server_ns="iperf3-server"
-iperf3_client_ns="iperf3-client"
-iperf3_image="ghcr.io/ak1ra-lab/iperf3"
+# Logging configuration
+declare -g LOG_LEVEL="INFO"    # ERROR, WARNING, INFO, DEBUG
+declare -g LOG_FORMAT="simple" # simple, level, full
 
+# Log level priorities
+declare -g -A LOG_PRIORITY=(
+    ["DEBUG"]=10
+    ["INFO"]=20
+    ["WARNING"]=30
+    ["ERROR"]=40
+    ["CRITICAL"]=50
+)
+
+# Logging functions
+log_color() {
+    local color="$1"
+    shift
+    if [[ -t 2 ]]; then
+        printf "\x1b[0;%sm%s\x1b[0m\n" "${color}" "$*" >&2
+    else
+        printf "%s\n" "$*" >&2
+    fi
+}
+
+log_message() {
+    local color="$1"
+    local level="$2"
+    shift 2
+
+    if [[ "${LOG_PRIORITY[$level]}" -lt "${LOG_PRIORITY[$LOG_LEVEL]}" ]]; then
+        return 0
+    fi
+
+    local message="$*"
+    case "${LOG_FORMAT}" in
+        simple)
+            log_color "${color}" "${message}"
+            ;;
+        level)
+            log_color "${color}" "[${level}] ${message}"
+            ;;
+        full)
+            local timestamp
+            timestamp="$(date -u +%Y-%m-%dT%H:%M:%S+0000)"
+            log_color "${color}" "[${timestamp}][${level}] ${message}"
+            ;;
+        *)
+            log_color "${color}" "${message}"
+            ;;
+    esac
+}
+
+log_error() {
+    local RED=31
+    log_message "${RED}" "ERROR" "$@"
+}
+
+log_info() {
+    local GREEN=32
+    log_message "${GREEN}" "INFO" "$@"
+}
+
+log_warning() {
+    local YELLOW=33
+    log_message "${YELLOW}" "WARNING" "$@"
+}
+
+log_debug() {
+    local BLUE=34
+    log_message "${BLUE}" "DEBUG" "$@"
+}
+
+log_critical() {
+    local CYAN=36
+    log_message "${CYAN}" "CRITICAL" "$@"
+}
+
+# Set log level with validation
+set_log_level() {
+    local level="${1^^}" # Convert to uppercase
+    if [[ -n "${LOG_PRIORITY[${level}]:-}" ]]; then
+        LOG_LEVEL="${level}"
+    else
+        log_error "Invalid log level: ${1}. Valid levels: ERROR, WARNING, INFO, DEBUG"
+        exit 1
+    fi
+}
+
+# Set log format with validation
+set_log_format() {
+    case "$1" in
+        simple | level | full)
+            LOG_FORMAT="$1"
+            ;;
+        *)
+            log_error "Invalid log format: ${1}. Valid formats: simple, level, full"
+            exit 1
+            ;;
+    esac
+}
+
+# Check if required commands are available
+require_command() {
+    for c in "$@"; do
+        if ! command -v "$c" >/dev/null 2>&1; then
+            log_error "Required command '$c' is not installed"
+            exit 1
+        fi
+    done
+}
+
+# Show usage information
 usage() {
     cat <<EOF
 Usage:
-    $script_name [init] | [iperf3 options]
+    ${SCRIPT_NAME} [OPTIONS] [-- IPERF3_OPTIONS]
 
-    Use '$script_name init' to create iperf3-server and iperf3-client DaemonSet on Kubernetes,
-    The remaining options will pass to iperf3 client pod directly.
+    Perform iperf3 tests between Kubernetes Pods
 
-    The iperf3 test results will be saved in the output/ directory of the current directory.
+OPTIONS:
+    -h, --help                Show this help message
+    --log-level LEVEL         Set log level (ERROR, WARNING, INFO, DEBUG)
+                              Default: INFO
+    --log-format FORMAT       Set log output format (simple, level, full)
+                              simple: message only
+                              level:  [LEVEL] message
+                              full:   [timestamp][LEVEL] message
+                              Default: simple
+    -i, --init                Initialize iperf3 server and client DaemonSets
+    -c, --cleanup             Remove iperf3 server and client resources
+    -o, --output DIR          Specify output directory
+                              Default: ./kube-iperf3
 
-Examples:
-    $script_name -t 30
-    $script_name -t 120 -R
+ARGUMENTS:
+    IPERF3_OPTIONS            Options to pass to iperf3 client (use -- to separate)
+
+EXAMPLES:
+    ${SCRIPT_NAME} --init
+    ${SCRIPT_NAME} -- -t 30
+    ${SCRIPT_NAME} -- -t 120 -R
+    ${SCRIPT_NAME} --output /tmp/results -- -t 60
+    ${SCRIPT_NAME} --log-level DEBUG --log-format full
+
+NOTE:
+    The iperf3 test results will be saved in the output directory.
 
 EOF
     exit 0
 }
 
-require_command() {
-    for c in "$@"; do
-        command -v "$c" >/dev/null || {
-            echo >&2 "required command '$c' is not installed, aborting..."
-            exit 1
-        }
-    done
+readonly IPERF3_SERVER_NS="iperf3-server"
+readonly IPERF3_CLIENT_NS="iperf3-client"
+readonly IPERF3_IMAGE="ghcr.io/ak1ra-lab/iperf3"
+readonly ROLLOUT_TIMEOUT="120s"
+
+# Check if namespace exists
+namespace_exists() {
+    local namespace="$1"
+    kubectl get namespace "${namespace}" &>/dev/null
 }
 
+# Wait for pods to be ready
+wait_for_pods() {
+    local namespace="$1"
+    local label="$2"
+    local timeout="${3:-120}"
+
+    log_info "Waiting for pods in namespace '${namespace}' with label '${label}' to be ready..."
+
+    if ! kubectl -n "${namespace}" wait --for=condition=ready pod \
+        -l "${label}" --timeout="${timeout}s" &>/dev/null; then
+        log_error "Timeout waiting for pods to be ready"
+        return 1
+    fi
+}
+
+# Create iperf3 server DaemonSet
 create_iperf3_server() {
+    log_info "Creating iperf3 server DaemonSet in namespace '${IPERF3_SERVER_NS}'..."
+
+    if namespace_exists "${IPERF3_SERVER_NS}"; then
+        log_warning "Namespace '${IPERF3_SERVER_NS}' already exists"
+    fi
+
     kubectl apply -f - <<EOF
 ---
 apiVersion: v1
 kind: Namespace
 metadata:
   labels:
-    kubernetes.io/metadata.name: $iperf3_server_ns
-  name: $iperf3_server_ns
+    kubernetes.io/metadata.name: ${IPERF3_SERVER_NS}
+  name: ${IPERF3_SERVER_NS}
 ---
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   name: iperf3-server
-  namespace: $iperf3_server_ns
+  namespace: ${IPERF3_SERVER_NS}
   labels:
     app: iperf3-server
 spec:
@@ -66,32 +219,54 @@ spec:
     spec:
       containers:
         - name: iperf3-server
-          image: $iperf3_image
+          image: ${IPERF3_IMAGE}
           args: ["-s"]
           ports:
             - protocol: TCP
               containerPort: 5201
+              name: tcp
             - protocol: UDP
               containerPort: 5201
+              name: udp
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 2000m
+              memory: 512Mi
 EOF
-    kubectl -n "$iperf3_server_ns" rollout status daemonset/iperf3-server --timeout=120s
+
+    if ! kubectl -n "${IPERF3_SERVER_NS}" rollout status daemonset/iperf3-server --timeout="${ROLLOUT_TIMEOUT}"; then
+        log_error "Failed to deploy iperf3 server"
+        return 1
+    fi
+
+    log_info "iperf3 server deployed successfully"
 }
 
+# Create iperf3 client DaemonSet
 create_iperf3_client() {
+    log_info "Creating iperf3 client DaemonSet in namespace '${IPERF3_CLIENT_NS}'..."
+
+    if namespace_exists "${IPERF3_CLIENT_NS}"; then
+        log_warning "Namespace '${IPERF3_CLIENT_NS}' already exists"
+    fi
+
     kubectl apply -f - <<EOF
 ---
 apiVersion: v1
 kind: Namespace
 metadata:
   labels:
-    kubernetes.io/metadata.name: $iperf3_client_ns
-  name: $iperf3_client_ns
+    kubernetes.io/metadata.name: ${IPERF3_CLIENT_NS}
+  name: ${IPERF3_CLIENT_NS}
 ---
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   name: iperf3-client
-  namespace: $iperf3_client_ns
+  namespace: ${IPERF3_CLIENT_NS}
   labels:
     app: iperf3-client
 spec:
@@ -105,59 +280,190 @@ spec:
     spec:
       containers:
         - name: iperf3
-          image: $iperf3_image
+          image: ${IPERF3_IMAGE}
           command: ["sleep", "infinity"]
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 2000m
+              memory: 512Mi
 EOF
-    kubectl -n "$iperf3_client_ns" rollout status daemonset/iperf3-client --timeout=120s
+
+    if ! kubectl -n "${IPERF3_CLIENT_NS}" rollout status daemonset/iperf3-client --timeout="${ROLLOUT_TIMEOUT}"; then
+        log_error "Failed to deploy iperf3 client"
+        return 1
+    fi
+
+    log_info "iperf3 client deployed successfully"
 }
 
+# Cleanup iperf3 resources
+cleanup_iperf3() {
+    log_info "Cleaning up iperf3 resources..."
+
+    if namespace_exists "${IPERF3_SERVER_NS}"; then
+        log_info "Deleting namespace '${IPERF3_SERVER_NS}'..."
+        kubectl delete namespace "${IPERF3_SERVER_NS}" --wait=true --timeout=60s || true
+    fi
+
+    if namespace_exists "${IPERF3_CLIENT_NS}"; then
+        log_info "Deleting namespace '${IPERF3_CLIENT_NS}'..."
+        kubectl delete namespace "${IPERF3_CLIENT_NS}" --wait=true --timeout=60s || true
+    fi
+
+    log_info "Cleanup completed"
+}
+
+# Execute iperf3 tests
 kubectl_exec_iperf3() {
-    output_dir="$(pwd)/output"
-    test -d "$output_dir" || mkdir -p "$output_dir"
-    output_file="$output_dir/kube-iperf3.$(date +%F_%H%M%S).txt"
+    local output_dir="$1"
+    shift
 
-    mapfile -t client_pods < <(kubectl -n "$iperf3_client_ns" -l app=iperf3-client get pods --no-headers -o json | jq -c .items[])
-    mapfile -t server_pods < <(kubectl -n "$iperf3_server_ns" -l app=iperf3-server get pods --no-headers -o json | jq -c .items[])
+    if [[ ! -d "${output_dir}" ]]; then
+        mkdir -p "${output_dir}"
+        log_info "Created output directory: ${output_dir}"
+    fi
 
-    if [[ "${#client_pods[@]}" -eq 0 ]] || [[ "${#server_pods[@]}" -eq 0 ]]; then
-        echo "No iperf3 client pods or server pods can be found... Use './$script_name init' to create it"
+    local output_file
+    output_file="${output_dir}/kube-iperf3.$(date +%F_%H%M%S).txt"
+    log_info "Test results will be saved to: ${output_file}"
+
+    local client_pods=()
+    local server_pods=()
+
+    readarray -t client_pods < <(
+        kubectl -n "${IPERF3_CLIENT_NS}" get pods -l app=iperf3-client \
+            -o json | jq -c '.items[]'
+    )
+
+    readarray -t server_pods < <(
+        kubectl -n "${IPERF3_SERVER_NS}" get pods -l app=iperf3-server \
+            -o json | jq -c '.items[]'
+    )
+
+    if [[ "${#client_pods[@]}" -eq 0 ]]; then
+        log_error "No iperf3 client pods found in namespace '${IPERF3_CLIENT_NS}'"
+        log_error "Use '${SCRIPT_NAME} --init' to create resources"
         exit 1
     fi
 
+    if [[ "${#server_pods[@]}" -eq 0 ]]; then
+        log_error "No iperf3 server pods found in namespace '${IPERF3_SERVER_NS}'"
+        log_error "Use '${SCRIPT_NAME} --init' to create resources"
+        exit 1
+    fi
+
+    log_info "Found ${#client_pods[@]} client pod(s) and ${#server_pods[@]} server pod(s)"
+
+    local test_count=0
     for client_pod in "${client_pods[@]}"; do
-        client_pod_name="$(jq -r .metadata.name <<<"$client_pod")"
-        # client_pod_ip="$(jq -r .status.podIP <<<"$client_pod")"
-        client_pod_node_name="$(jq -r .spec.nodeName <<<"$client_pod")"
+        local client_pod_name client_pod_node_name
+        client_pod_name="$(jq -r '.metadata.name' <<<"${client_pod}")"
+        client_pod_node_name="$(jq -r '.spec.nodeName' <<<"${client_pod}")"
 
         for server_pod in "${server_pods[@]}"; do
-            # server_pod_name="$(jq -r .metadata.name <<<"$server_pod")"
-            server_pod_ip="$(jq -r .status.podIP <<<"$server_pod")"
-            server_pod_node_name="$(jq -r .spec.nodeName <<<"$server_pod")"
-            echo "iperf3 start: ${client_pod_node_name} -> ${server_pod_node_name}" 2>&1 | tee -a "$output_file"
+            local server_pod_ip server_pod_node_name
+            server_pod_ip="$(jq -r '.status.podIP' <<<"${server_pod}")"
+            server_pod_node_name="$(jq -r '.spec.nodeName' <<<"${server_pod}")"
+
+            test_count=$((test_count + 1))
+            log_info "Test ${test_count}: ${client_pod_node_name} -> ${server_pod_node_name}" | tee -a "${output_file}"
+
             (
                 set -x
-                kubectl -n "$iperf3_client_ns" exec -it "$client_pod_name" -- iperf3 -c "$server_pod_ip" "$@"
-            ) 2>&1 | tee -a "$output_file"
+                kubectl -n "${IPERF3_CLIENT_NS}" exec -it "${client_pod_name}" -- \
+                    iperf3 -c "${server_pod_ip}" "$@"
+            ) 2>&1 | tee -a "${output_file}"
+
+            local exit_code="${PIPESTATUS[0]}"
+            if [[ "${exit_code}" -ne 0 ]]; then
+                log_warning "iperf3 test failed for ${client_pod_name} -> ${server_pod_ip} (exit code: ${exit_code})"
+            fi
+
+            echo "" | tee -a "${output_file}"
         done
     done
+
+    log_info "All tests completed. Results saved to: ${output_file}"
+}
+
+# Parse command line arguments
+parse_args() {
+    local args
+    local options="hico:"
+    local longoptions="help,log-level:,log-format:,init,cleanup,output:"
+    if ! args=$(getopt --options="${options}" --longoptions="${longoptions}" --name="${SCRIPT_NAME}" -- "$@"); then
+        usage
+    fi
+
+    eval set -- "${args}"
+
+    declare -g DO_INIT="false"
+    declare -g DO_CLEANUP="false"
+    declare -g OUTPUT_DIR
+    OUTPUT_DIR="$(pwd)/kube-iperf3"
+    declare -g -a IPERF3_ARGS=()
+
+    while true; do
+        case "$1" in
+            -h | --help)
+                usage
+                ;;
+            --log-level)
+                set_log_level "$2"
+                shift 2
+                ;;
+            --log-format)
+                set_log_format "$2"
+                shift 2
+                ;;
+            -i | --init)
+                DO_INIT="true"
+                shift
+                ;;
+            -c | --cleanup)
+                DO_CLEANUP="true"
+                shift
+                ;;
+            -o | --output)
+                OUTPUT_DIR="$2"
+                shift 2
+                ;;
+            --)
+                shift
+                break
+                ;;
+            *)
+                log_error "Unexpected option: $1"
+                usage
+                ;;
+        esac
+    done
+
+    IPERF3_ARGS=("$@")
 }
 
 main() {
-    if [[ "$#" -ge 1 ]]; then
-        if [[ "$1" == "-h" ]] || [[ "$1" == "--help" ]]; then
-            usage
-        fi
+    require_command kubectl jq getopt
 
-        if [[ "$1" == "init" ]]; then
-            create_iperf3_server
-            create_iperf3_client
-            return
-        fi
+    parse_args "$@"
+
+    log_debug "Log level: ${LOG_LEVEL}, Log format: ${LOG_FORMAT}"
+
+    if [[ "${DO_INIT}" == "true" ]]; then
+        create_iperf3_server
+        create_iperf3_client
+        return 0
     fi
 
-    kubectl_exec_iperf3 "$@"
-}
+    if [[ "${DO_CLEANUP}" == "true" ]]; then
+        cleanup_iperf3
+        return 0
+    fi
 
-require_command kubectl jq
+    kubectl_exec_iperf3 "${OUTPUT_DIR}" "${IPERF3_ARGS[@]}"
+}
 
 main "$@"

@@ -2,45 +2,88 @@
 # author: ak1ra
 # date: 2025-06-06
 
-set -o errexit
+set -o errexit -o nounset -o pipefail
 
-script_name="$(basename "$(readlink -f "$0")")"
+SCRIPT_NAME="$(basename "$(readlink -f "$0")")"
 
-# New-Item -ItemType Junction -Path $env:USERPROFILE\code -Value D:\code
-base_dir="${HOME}/code"
-test -d "${base_dir}" || mkdir -p "${base_dir}"
+# Logging functions
+log_color() {
+    local color="$1"
+    shift
+    if [ -t 2 ]; then
+        printf "\x1b[0;%sm%s\x1b[0m\n" "${color}" "$*" >&2
+    else
+        printf "%s\n" "$*" >&2
+    fi
+}
 
+log_time() {
+    local color="$1"
+    shift
+    log_color "$color" "[$(date -u +%Y-%m-%dT%H:%M:%S+0000)]$*"
+}
+
+log_error() {
+    local RED=31
+    log_color "$RED" "[ERROR] $*"
+}
+
+log_warning() {
+    local YELLOW=33
+    log_color "$YELLOW" "[WARNING] $*"
+}
+
+log_info() {
+    local WHITE=37
+    log_color "$WHITE" "[INFO] $*"
+}
+
+log_debug() {
+    local BLUE=34
+    if [ "${DEBUG:-false}" = "true" ]; then
+        log_color "$BLUE" "[DEBUG] $*"
+    fi
+}
+
+# Check if required commands are available
 require_command() {
     for c in "$@"; do
-        command -v "$c" >/dev/null || {
-            echo >&2 "required command '$c' is not installed, aborting..."
+        if ! command -v "$c" >/dev/null 2>&1; then
+            log_error "Required command '$c' is not installed"
             exit 1
-        }
+        fi
     done
 }
 
 usage() {
     cat <<EOF
 Usage:
-    $script_name [-h|--help] | [-f|--fork] [-H|--hostname] git_url
+    $SCRIPT_NAME [-h|--help] | [-f|--fork] [-H|--hostname] [-t|--test] git_url
 
 Options:
-    -h, --help        print this help message
-    -f, --fork        use 'upstream' as origin name
-    -H, --hostname    use git_url hostname as origin name
+    -h, --help        Show this help message
+    -f, --fork        Use 'upstream' as git remote name
+    -H, --hostname    Use git_url hostname as git remote name
+    -t, --test        Test pre-defined git_urls
 
 EOF
     exit 0
 }
 
 strip_git_url() {
-    sed -E \
+    local git_url="$1"
+    if [[ -z "${git_url}" ]]; then
+        log_error "Error: empty git URL provided"
+        return 1
+    fi
+
+    echo "${git_url}" | sed -E \
         -e 's%^((https?|ssh|git):\/\/)?(git@)?([^\/:]+)[\/:]([-_.a-zA-Z0-9\/]+)$%\4/\5%' \
-        -e 's%\.git$%%' -
+        -e 's%\.git$%%'
 }
 
 test_git_urls() {
-    git_urls=(
+    local -a git_urls=(
         git://github.com/user/repo.git
         http://github.com/user/repo.git
         https://github.com/user/repo.git
@@ -58,17 +101,26 @@ test_git_urls() {
         https://github.com/user/repo.with.dot.git
     )
 
+    local git_url
     for git_url in "${git_urls[@]}"; do
-        printf "%-50s -> %s\n" "${git_url}" "$(strip_git_url <<<"${git_url}")"
+        printf "%-50s -> %s\n" "${git_url}" "$(strip_git_url "${git_url}")"
     done
 }
 
 git_clone() {
-    git_url="$1"
-    test -n "${git_url}" || usage
-    relpath="$(strip_git_url <<<"${git_url}")"
+    local git_url="$1"
+    if [[ -z "${git_url}" ]]; then
+        log_error "Error: git URL is required"
+        usage
+    fi
 
-    repo_dir="${base_dir}/${relpath}"
+    local relpath
+    if ! relpath="$(strip_git_url "${git_url}")"; then
+        log_error "Error: failed to parse git URL: ${git_url}"
+        exit 1
+    fi
+
+    local repo_dir="${CODE_DIR}/${relpath}"
     if [[ -d "${repo_dir}/.git" ]]; then
         (
             set -x
@@ -77,53 +129,69 @@ git_clone() {
         return
     fi
 
-    if [[ "${hostname_flag}" == "true" ]]; then
-        origin="${relpath%%/*}"
+    local git_remote="${DEFAULT_REMOTE}"
+    if [[ "${HOSTNAME_REMOTE}" == "true" ]]; then
+        git_remote="${relpath%%/*}"
     fi
 
     (
         set -x
-        git clone --origin="${origin}" "${git_url}" "${repo_dir}"
+        git clone --origin="${git_remote}" "${git_url}" "${repo_dir}"
     )
 }
 
 main() {
-    ARGS="$(getopt --options 'hHft' --longoptions 'help,hostname,fork,test' -- "$@")"
-    if ! eval set -- "${ARGS}"; then
+    require_command git getopt sed
+
+    declare -g DEFAULT_REMOTE="origin"
+    declare -g HOSTNAME_REMOTE="false"
+
+    # New-Item -ItemType Junction -Path $env:USERPROFILE\code -Value D:\code
+    declare -g CODE_DIR="${HOME}/code"
+    test -d "${CODE_DIR}" || mkdir -p "${CODE_DIR}"
+
+    local args
+    local options="hHft"
+    local longoptions="help,hostname,fork,test"
+    if ! args=$(getopt --options="${options}" --longoptions="${longoptions}" --name="${SCRIPT_NAME}" -- "$@"); then
         usage
     fi
 
-    origin="origin"
-    hostname_flag="false"
+    eval set -- "${args}"
+
     while true; do
         case "$1" in
             -h | --help)
                 usage
                 ;;
             -H | --hostname)
-                hostname_flag=true
+                HOSTNAME_REMOTE="true"
                 shift
                 ;;
             -f | --fork)
-                origin="upstream"
+                DEFAULT_REMOTE="upstream"
                 shift
                 ;;
             -t | --test)
                 test_git_urls
-                return
+                exit 0
                 ;;
             --)
                 shift
                 break
                 ;;
             *)
-                echo "unexpected option: $1"
+                log_error "Unexpected option: $1"
                 usage
                 ;;
         esac
     done
 
-    git_clone "$@"
+    if [[ $# -ge 1 ]]; then
+        git_clone "$@"
+    else
+        usage
+    fi
 }
 
 main "$@"
