@@ -1,9 +1,250 @@
-#!/bin/sh
+#!/bin/bash
 
-git_fetch() {
-    find . -type d -name '.git' -print0 | xargs -0 -P "$(nproc)" -I git_dir sh -x -c '
-        GIT_TERMINAL_PROMPT=0 git -c credential.helper= --git-dir=git_dir fetch --all </dev/null || true
-    '
+set -o errexit -o nounset -o pipefail
+
+SCRIPT_FILE="$(readlink -f "$0")"
+SCRIPT_NAME="$(basename "${SCRIPT_FILE}")"
+
+# Logging configuration
+declare -g LOG_LEVEL="INFO"
+declare -g LOG_FORMAT="simple"
+
+# Log level priorities
+declare -g -A LOG_PRIORITY=(
+    ["DEBUG"]=10
+    ["INFO"]=20
+    ["WARNING"]=30
+    ["ERROR"]=40
+    ["CRITICAL"]=50
+)
+
+# Logging functions
+log_color() {
+    local color="$1"
+    shift
+    if [[ -t 2 ]]; then
+        printf "\x1b[0;%sm%s\x1b[0m\n" "${color}" "$*" >&2
+    else
+        printf "%s\n" "$*" >&2
+    fi
 }
 
-git_fetch "$@"
+log_message() {
+    local color="$1"
+    local level="$2"
+    shift 2
+
+    if [[ "${LOG_PRIORITY[$level]}" -lt "${LOG_PRIORITY[$LOG_LEVEL]}" ]]; then
+        return 0
+    fi
+
+    local message="$*"
+    case "${LOG_FORMAT}" in
+        simple)
+            log_color "${color}" "${message}"
+            ;;
+        level)
+            log_color "${color}" "[${level}] ${message}"
+            ;;
+        full)
+            local timestamp
+            timestamp="$(date -u +%Y-%m-%dT%H:%M:%S+0000)"
+            log_color "${color}" "[${timestamp}][${level}] ${message}"
+            ;;
+        *)
+            log_color "${color}" "${message}"
+            ;;
+    esac
+}
+
+log_error() {
+    local RED=31
+    log_message "${RED}" "ERROR" "$@"
+}
+
+log_info() {
+    local GREEN=32
+    log_message "${GREEN}" "INFO" "$@"
+}
+
+log_warning() {
+    local YELLOW=33
+    log_message "${YELLOW}" "WARNING" "$@"
+}
+
+log_debug() {
+    local BLUE=34
+    log_message "${BLUE}" "DEBUG" "$@"
+}
+
+log_critical() {
+    local CYAN=36
+    log_message "${CYAN}" "CRITICAL" "$@"
+}
+
+# Set log level with validation
+set_log_level() {
+    local level="${1^^}"
+    if [[ -n "${LOG_PRIORITY[${level}]:-}" ]]; then
+        LOG_LEVEL="${level}"
+    else
+        log_error "Invalid log level: ${1}. Valid levels: ERROR, WARNING, INFO, DEBUG"
+        exit 1
+    fi
+}
+
+# Set log format with validation
+set_log_format() {
+    case "$1" in
+        simple | level | full)
+            LOG_FORMAT="$1"
+            ;;
+        *)
+            log_error "Invalid log format: ${1}. Valid formats: simple, level, full"
+            exit 1
+            ;;
+    esac
+}
+
+# Check if required commands are available
+require_command() {
+    for c in "$@"; do
+        if ! command -v "$c" >/dev/null 2>&1; then
+            log_error "Required command '$c' is not installed"
+            exit 1
+        fi
+    done
+}
+
+# Show usage information
+usage() {
+    cat <<EOF
+Usage:
+    ${SCRIPT_NAME} [OPTIONS] [DIRECTORY]
+
+    Recursively fetch all git repositories in parallel
+
+OPTIONS:
+    -h, --help                Show this help message
+    --log-level LEVEL         Set log level (ERROR, WARNING, INFO, DEBUG)
+                              Default: INFO
+    --log-format FORMAT       Set log output format (simple, level, full)
+                              simple: message only
+                              level:  [LEVEL] message
+                              full:   [timestamp][LEVEL] message
+                              Default: simple
+    -j, --jobs NUM            Number of parallel jobs (default: nproc)
+
+ARGUMENTS:
+    DIRECTORY                 Directory to search for git repositories
+                              Default: current directory
+
+EXAMPLES:
+    ${SCRIPT_NAME}
+    ${SCRIPT_NAME} /path/to/repos
+    ${SCRIPT_NAME} --jobs 4
+    ${SCRIPT_NAME} --log-level DEBUG --log-format full
+
+EOF
+    exit 0
+}
+
+# Parse command line arguments
+parse_args() {
+    local args
+    local options="hj:"
+    local longoptions="help,log-level:,log-format:,jobs:"
+    if ! args=$(getopt --options="${options}" --longoptions="${longoptions}" --name="${SCRIPT_NAME}" -- "$@"); then
+        usage
+    fi
+
+    eval set -- "${args}"
+    declare -g -a REST_ARGS=()
+
+    declare -g JOBS
+    JOBS="$(nproc)"
+
+    while true; do
+        case "$1" in
+            -h | --help)
+                usage
+                ;;
+            --log-level)
+                set_log_level "$2"
+                shift 2
+                ;;
+            --log-format)
+                set_log_format "$2"
+                shift 2
+                ;;
+            -j | --jobs)
+                JOBS="$2"
+                shift 2
+                ;;
+            --)
+                shift
+                break
+                ;;
+            *)
+                log_error "Unexpected option: $1"
+                usage
+                ;;
+        esac
+    done
+
+    # Capture remaining positional arguments
+    REST_ARGS=("$@")
+}
+
+# Fetch all git repositories
+git_fetch() {
+    local search_dir="${1:-.}"
+
+    if [[ ! -d "${search_dir}" ]]; then
+        log_error "Directory does not exist: ${search_dir}"
+        exit 1
+    fi
+
+    log_info "Searching for git repositories in: ${search_dir}"
+    log_debug "Using ${JOBS} parallel jobs"
+
+    local -a git_dirs=()
+    readarray -t git_dirs < <(
+        find "${search_dir}" -type d -name '.git' 2>/dev/null
+    )
+
+    if [[ "${#git_dirs[@]}" -eq 0 ]]; then
+        log_warning "No git repositories found in ${search_dir}"
+        return 0
+    fi
+
+    log_info "Found ${#git_dirs[@]} git repositories"
+
+    printf '%s\0' "${git_dirs[@]}" | xargs -0 -P "${JOBS}" -I git_dir sh -c "
+        repo_dir=\"\$(dirname git_dir)\"
+        if [ \"${LOG_LEVEL}\" = \"DEBUG\" ]; then
+            echo \"[DEBUG] Fetching: \${repo_dir}\" >&2
+            GIT_TERMINAL_PROMPT=0 git -c credential.helper= --git-dir=git_dir fetch --all </dev/null
+        else
+            GIT_TERMINAL_PROMPT=0 git -c credential.helper= --git-dir=git_dir fetch --all </dev/null 2>&1 || true
+        fi
+    "
+
+    log_info "Fetch completed for all repositories"
+}
+
+main() {
+    require_command getopt find git xargs nproc
+
+    parse_args "$@"
+
+    local target_dir="${REST_ARGS[0]:-.}"
+
+    log_debug "Log level: ${LOG_LEVEL}, Log format: ${LOG_FORMAT}"
+    log_debug "Jobs: ${JOBS}"
+    log_debug "Target directory: ${target_dir}"
+
+    git_fetch "${target_dir}"
+}
+
+main "$@"
