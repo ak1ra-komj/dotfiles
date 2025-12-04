@@ -1,0 +1,23 @@
+---
+- name: find broken_links
+  ansible.builtin.command:
+    argv: ["find", "{{ dir }}", "-xtype", "l", "-print"]
+  loop: "{{ stow_find_dirs }}"
+  loop_control:
+    loop_var: dir
+  changed_when: false
+  failed_when: false
+  register: broken_links_register
+
+- name: set broken_links
+  ansible.builtin.set_fact:
+    broken_links: "{{ broken_links_register.results | map(attribute='stdout_lines') | ansible.builtin.flatten | select() | list }}"
+
+- name: unlink broken_links
+  when: broken_links | length > 0
+  ansible.builtin.file:
+    path: "{{ broken_link }}"
+    state: absent
+  loop: "{{ broken_links }}"
+  loop_control:
+    loop_var: broken_link

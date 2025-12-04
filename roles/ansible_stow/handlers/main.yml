@@ -1,0 +1,3 @@
+---
+- name: unlink broken links
+  ansible.builtin.include_tasks: broken_links.yml

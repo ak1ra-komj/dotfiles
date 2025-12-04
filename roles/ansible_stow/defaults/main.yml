@@ -1,0 +1,18 @@
+---
+# -d DIR, --dir=DIR     Set stow dir to DIR (default is current dir)
+stow_src: "{{ ansible_env.HOME }}/.dotfiles"
+
+# -t DIR, --target=DIR  Set target to DIR (default is parent of stow dir)
+stow_target: "{{ ansible_env.HOME }}"
+
+# stow PACKAGE to be installed
+stow_packages: []
+
+# .stow_keep file to create before stow
+stow_keep_dirs: []
+
+# dirs to search for broken links
+stow_find_dirs: []
+
+# bool: 是否执行修复 ssh_config 目录文件权限
+fix_ssh_config_dir: false

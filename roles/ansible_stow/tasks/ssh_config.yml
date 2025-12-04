@@ -1,0 +1,28 @@
+---
+- name: check ssh_config_dir directory exists
+  ansible.builtin.stat:
+    path: "{{ ssh_config_dir }}"
+  register: ssh_config_dir_stat_register
+  delegate_to: localhost
+
+- name: find ssh_config_dir files
+  when:
+    - ssh_config_dir_stat_register.stat.exists
+    - ssh_config_dir_stat_register.stat.isdir
+  ansible.builtin.find:
+    paths: "{{ ssh_config_dir }}"
+    hidden: true
+    recurse: true
+    use_regex: true
+  register: ssh_config_dir_find_register
+  delegate_to: localhost
+
+- name: fix ssh_config_dir files permissions
+  when: ssh_config_dir_find_register.files | length > 0
+  ansible.builtin.file:
+    path: "{{ ssh_config_file.path }}"
+    mode: "0600"
+  loop: "{{ ssh_config_dir_find_register.files }}"
+  loop_control:
+    loop_var: ssh_config_file
+  delegate_to: localhost

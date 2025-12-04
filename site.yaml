@@ -1,91 +1,16 @@
 ---
+# ansible-playbook site.yaml --extra-vars='playbook_hosts=localhost'
 - name: deploy dotfiles using GNU Stow
   hosts: "{{ playbook_hosts | default('localhost') }}"
   vars:
-    dotfiles: "{{ playbook_dir }}"
-    stow_dir: "{{ ansible_env.HOME }}/.dotfiles"
-    stow_target: "{{ ansible_env.HOME }}"
-    stow_packages:
-      ["bash", "git", "vim", "dotsh", "dotpy"]
-    stow_packages_dirs:
-      - "{{ ansible_env.HOME }}/.ssh"
-      - "{{ ansible_env.HOME }}/bin"
+    stow_packages: ["bash", "git", "vim", "dotsh"]
     stow_keep_dirs:
       - "{{ ansible_env.HOME }}/.config/git"
       - "{{ ansible_env.HOME }}/.ssh/config.d"
       - "{{ ansible_env.HOME }}/bin"
+    stow_find_dirs:
+      - "{{ ansible_env.HOME }}/.ssh"
+      - "{{ ansible_env.HOME }}/bin"
 
-  tasks:
-    - name: ensure GNU Stow is installed
-      become: true
-      become_user: root
-      ansible.builtin.package:
-        name:
-          - stow
-          - rsync
-        state: present
-
-    - name: ensure directories
-      ansible.builtin.file:
-        path: "{{ stow_dir }}"
-        owner: "{{ ansible_effective_user_id }}"
-        group: "{{ ansible_effective_group_id }}"
-        state: directory
-
-    - name: ensure stow_keep_dirs exists
-      ansible.builtin.file:
-        path: "{{ item }}"
-        owner: "{{ ansible_effective_user_id }}"
-        group: "{{ ansible_effective_group_id }}"
-        state: directory
-      loop: "{{ stow_keep_dirs }}"
-
-    - name: touch .stow_keep file
-      ansible.builtin.file:
-        path: "{{ item }}/.stow_keep"
-        owner: "{{ ansible_effective_user_id }}"
-        group: "{{ ansible_effective_group_id }}"
-        state: touch
-      loop: "{{ stow_keep_dirs }}"
-
-    - name: find broken_links
-      ansible.builtin.command:
-        argv: ["find", "{{ dir }}", "-xtype", "l"]
-      loop: "{{ stow_packages_dirs }}"
-      loop_control:
-        loop_var: dir
-      changed_when: false
-      register: broken_links_register
-
-    - name: set broken_links
-      vars:
-        result_lines: "{{ result.stdout_lines }}"
-      ansible.builtin.set_fact:
-        broken_links: "{{ broken_links | default([]) + result_lines }}"
-      loop: "{{ broken_links_register.results }}"
-      loop_control:
-        loop_var: result
-
-    - name: unlink broken_links
-      when: broken_links | length > 0
-      ansible.builtin.file:
-        path: "{{ broken_link }}"
-        state: absent
-      loop: "{{ broken_links }}"
-      loop_control:
-        loop_var: broken_link
-
-    - name: rsync dotfiles to stow_dir
-      when: ansible_host != "localhost"
-      ansible.builtin.synchronize:
-        src: "{{ dotfiles }}/"
-        dest: "{{ stow_dir }}/"
-        recursive: true
-        delete: true
-        perms: true
-
-    - name: stow install
-      command: "stow --verbose --dir={{ stow_dir }} --target={{ stow_target }} {{ item }}"
-      args:
-        chdir: "{{ stow_dir }}"
-      loop: "{{ stow_packages }}"
+  roles:
+    - ansible_stow

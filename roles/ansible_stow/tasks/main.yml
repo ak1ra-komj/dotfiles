@@ -1,0 +1,73 @@
+---
+- name: validate required variables
+  ansible.builtin.assert:
+    that:
+      - stow_packages | length > 0
+      - stow_keep_dirs | length > 0
+      - stow_find_dirs | length > 0
+    fail_msg: "Required variables are not properly defined"
+
+- name: ensure required packages installed
+  become: true
+  become_user: root
+  ansible.builtin.package:
+    name:
+      - stow
+      - rsync
+    state: present
+  register: package_install
+  retries: 3
+  delay: 5
+  until: package_install is succeeded
+
+- name: ensure directories
+  ansible.builtin.file:
+    path: "{{ stow_src }}"
+    mode: "0700"
+    state: directory
+
+- name: ensure .stow_keep file
+  ansible.builtin.include_tasks: stow_keep.yml
+  loop: "{{ stow_keep_dirs }}"
+  loop_control:
+    loop_var: stow_keep_dir
+
+# include_tasks cannot be used with delegate_to
+- name: fix ssh_config files permissions
+  when:
+    - (fix_ssh_config_dir | ansible.builtin.bool)
+  vars:
+    ssh_config_dir: "{{ playbook_dir }}/ssh_config"
+  ansible.builtin.include_tasks: ssh_config.yml
+  run_once: true
+
+- name: synchronize dotfiles from playbook_dir to stow_src
+  when: inventory_hostname != "localhost"
+  # Preserve owner (super user only)
+  become: true
+  ansible.posix.synchronize:
+    src: "{{ playbook_dir }}/"
+    dest: "{{ stow_src }}/"
+    # Mirrors the rsync archive flag, enables recursive, links, perms, times, owner, group flags, and -D.
+    archive: true
+    # Delete files in dest that do not exist (after transfer, not before) in the src path.
+    delete: true
+
+- name: execute stow install on stow_src
+  ansible.builtin.command:
+    argv:
+      - /usr/bin/stow
+      - --verbose
+      - --restow
+      - --dir
+      - "{{ stow_src }}"
+      - --target
+      - "{{ stow_target }}"
+      - "{{ stow_package }}"
+  args:
+    chdir: "{{ stow_src }}"
+  loop: "{{ stow_packages }}"
+  loop_control:
+    loop_var: stow_package
+  notify:
+    - unlink broken links

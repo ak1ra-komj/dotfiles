@@ -1,0 +1,12 @@
+---
+- name: ensure stow_keep_dir exists
+  ansible.builtin.file:
+    path: "{{ stow_keep_dir }}"
+    mode: "0700"
+    state: directory
+
+- name: touch .stow_keep file
+  ansible.builtin.file:
+    path: "{{ stow_keep_dir }}/.stow_keep"
+    mode: "0600"
+    state: touch
