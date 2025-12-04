@@ -5,7 +5,7 @@
 cat <<EOF
     DEPRECATED WARNING: use git-filter-repo mailmap instead!
 
-        git-filter-repo --mailmap <(echo "alice <alice@example.com> bob <bob@example.net>")
+        git-filter-repo --mailmap <(echo "Proper Name <proper@email.xx> Commit Name <commit@email.xx>")
 
     Ref: https://htmlpreview.github.io/?https://raw.githubusercontent.com/newren/git-filter-repo/docs/html/gitmailmap.html
 
