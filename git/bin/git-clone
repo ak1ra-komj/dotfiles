@@ -1,48 +1,109 @@
 #!/bin/bash
-# author: ak1ra
-# date: 2025-06-06
 
 set -o errexit -o nounset -o pipefail
 
-SCRIPT_NAME="$(basename "$(readlink -f "$0")")"
+SCRIPT_FILE="$(readlink -f "$0")"
+SCRIPT_NAME="$(basename "${SCRIPT_FILE}")"
+
+# Logging configuration
+declare -g LOG_LEVEL="INFO"    # ERROR, WARNING, INFO, DEBUG
+declare -g LOG_FORMAT="simple" # simple, level, full
+
+# Log level priorities
+declare -g -A LOG_PRIORITY=(
+    ["DEBUG"]=10
+    ["INFO"]=20
+    ["WARNING"]=30
+    ["ERROR"]=40
+    ["CRITICAL"]=50
+)
 
 # Logging functions
 log_color() {
     local color="$1"
     shift
-    if [ -t 2 ]; then
+    if [[ -t 2 ]]; then
         printf "\x1b[0;%sm%s\x1b[0m\n" "${color}" "$*" >&2
     else
         printf "%s\n" "$*" >&2
     fi
 }
 
-log_time() {
+log_message() {
     local color="$1"
-    shift
-    log_color "$color" "[$(date -u +%Y-%m-%dT%H:%M:%S+0000)]$*"
+    local level="$2"
+    shift 2
+
+    if [[ "${LOG_PRIORITY[$level]}" -lt "${LOG_PRIORITY[$LOG_LEVEL]}" ]]; then
+        return 0
+    fi
+
+    local message="$*"
+    case "${LOG_FORMAT}" in
+        simple)
+            log_color "${color}" "${message}"
+            ;;
+        level)
+            log_color "${color}" "[${level}] ${message}"
+            ;;
+        full)
+            local timestamp
+            timestamp="$(date -u +%Y-%m-%dT%H:%M:%S+0000)"
+            log_color "${color}" "[${timestamp}][${level}] ${message}"
+            ;;
+        *)
+            log_color "${color}" "${message}"
+            ;;
+    esac
 }
 
 log_error() {
     local RED=31
-    log_color "$RED" "[ERROR] $*"
+    log_message "${RED}" "ERROR" "$@"
+}
+
+log_info() {
+    local GREEN=32
+    log_message "${GREEN}" "INFO" "$@"
 }
 
 log_warning() {
     local YELLOW=33
-    log_color "$YELLOW" "[WARNING] $*"
-}
-
-log_info() {
-    local WHITE=37
-    log_color "$WHITE" "[INFO] $*"
+    log_message "${YELLOW}" "WARNING" "$@"
 }
 
 log_debug() {
     local BLUE=34
-    if [ "${DEBUG:-false}" = "true" ]; then
-        log_color "$BLUE" "[DEBUG] $*"
+    log_message "${BLUE}" "DEBUG" "$@"
+}
+
+log_critical() {
+    local CYAN=36
+    log_message "${CYAN}" "CRITICAL" "$@"
+}
+
+# Set log level with validation
+set_log_level() {
+    local level="${1^^}" # Convert to uppercase
+    if [[ -n "${LOG_PRIORITY[${level}]:-}" ]]; then
+        LOG_LEVEL="${level}"
+    else
+        log_error "Invalid log level: ${1}. Valid levels: ERROR, WARNING, INFO, DEBUG"
+        exit 1
     fi
+}
+
+# Set log format with validation
+set_log_format() {
+    case "$1" in
+        simple | level | full)
+            LOG_FORMAT="$1"
+            ;;
+        *)
+            log_error "Invalid log format: ${1}. Valid formats: simple, level, full"
+            exit 1
+            ;;
+    esac
 }
 
 # Check if required commands are available
@@ -55,25 +116,42 @@ require_command() {
     done
 }
 
+# Show usage information
 usage() {
     cat <<EOF
 Usage:
-    $SCRIPT_NAME [-h|--help] | [-f|--fork] [-H|--hostname] [-t|--test] git_url
+    ${SCRIPT_NAME} [OPTIONS] git_url
 
-Options:
-    -h, --help        Show this help message
-    -f, --fork        Use 'upstream' as git remote name
-    -H, --hostname    Use git_url hostname as git remote name
-    -t, --test        Test pre-defined git_urls
+    Clone git repositories into organized directory structure
+
+OPTIONS:
+    -h, --help                Show this help message
+    --log-level LEVEL         Set log level (ERROR, WARNING, INFO, DEBUG)
+                              Default: INFO
+    --log-format FORMAT       Set log output format (simple, level, full)
+                              simple: message only
+                              level:  [LEVEL] message
+                              full:   [timestamp][LEVEL] message
+                              Default: simple
+    -f, --fork                Use 'upstream' as git remote name
+    -H, --hostname            Use git_url hostname as git remote name
+    -t, --test                Test pre-defined git_urls
+
+EXAMPLES:
+    ${SCRIPT_NAME} https://github.com/user/repo.git
+    ${SCRIPT_NAME} --fork git@github.com:user/repo.git
+    ${SCRIPT_NAME} --hostname https://gitlab.com/group/project.git
+    ${SCRIPT_NAME} --log-level DEBUG --test
 
 EOF
     exit 0
 }
 
+# Strip git URL to extract hostname and path
 strip_git_url() {
     local git_url="$1"
     if [[ -z "${git_url}" ]]; then
-        log_error "Error: empty git URL provided"
+        log_error "Empty git URL provided"
         return 1
     fi
 
@@ -82,6 +160,7 @@ strip_git_url() {
         -e 's%\.git$%%'
 }
 
+# Test git URL parsing with various formats
 test_git_urls() {
     local -a git_urls=(
         git://github.com/user/repo.git
@@ -107,21 +186,23 @@ test_git_urls() {
     done
 }
 
+# Clone or update git repository
 git_clone() {
     local git_url="$1"
     if [[ -z "${git_url}" ]]; then
-        log_error "Error: git URL is required"
+        log_error "Git URL is required"
         usage
     fi
 
     local relpath
     if ! relpath="$(strip_git_url "${git_url}")"; then
-        log_error "Error: failed to parse git URL: ${git_url}"
+        log_error "Failed to parse git URL: ${git_url}"
         exit 1
     fi
 
     local repo_dir="${CODE_DIR}/${relpath}"
     if [[ -d "${repo_dir}/.git" ]]; then
+        log_info "Repository already exists, fetching updates: ${repo_dir}"
         (
             set -x
             git --git-dir="${repo_dir}/.git" fetch --all
@@ -134,35 +215,41 @@ git_clone() {
         git_remote="${relpath%%/*}"
     fi
 
+    log_info "Cloning repository to: ${repo_dir}"
     (
         set -x
         git clone --origin="${git_remote}" "${git_url}" "${repo_dir}"
     )
 }
 
-main() {
-    require_command git getopt sed
-
-    declare -g DEFAULT_REMOTE="origin"
-    declare -g HOSTNAME_REMOTE="false"
-
-    # New-Item -ItemType Junction -Path $env:USERPROFILE\code -Value D:\code
-    declare -g CODE_DIR="${HOME}/code"
-    test -d "${CODE_DIR}" || mkdir -p "${CODE_DIR}"
-
+# Parse command line arguments
+parse_args() {
     local args
     local options="hHft"
-    local longoptions="help,hostname,fork,test"
+    local longoptions="help,log-level:,log-format:,hostname,fork,test"
     if ! args=$(getopt --options="${options}" --longoptions="${longoptions}" --name="${SCRIPT_NAME}" -- "$@"); then
         usage
     fi
 
     eval set -- "${args}"
+    declare -g -a REST_ARGS=()
+
+    declare -g DEFAULT_REMOTE="origin"
+    declare -g HOSTNAME_REMOTE="false"
+    declare -g RUN_TEST="false"
 
     while true; do
         case "$1" in
             -h | --help)
                 usage
+                ;;
+            --log-level)
+                set_log_level "$2"
+                shift 2
+                ;;
+            --log-format)
+                set_log_format "$2"
+                shift 2
                 ;;
             -H | --hostname)
                 HOSTNAME_REMOTE="true"
@@ -173,8 +260,8 @@ main() {
                 shift
                 ;;
             -t | --test)
-                test_git_urls
-                exit 0
+                RUN_TEST="true"
+                shift
                 ;;
             --)
                 shift
@@ -187,9 +274,33 @@ main() {
         esac
     done
 
-    if [[ $# -ge 1 ]]; then
-        git_clone "$@"
+    # Capture remaining positional arguments
+    REST_ARGS=("$@")
+}
+
+main() {
+    require_command git getopt sed
+
+    # New-Item -ItemType Junction -Path $env:USERPROFILE\code -Value D:\code
+    declare -g CODE_DIR="${HOME}/code"
+    [[ -d "${CODE_DIR}" ]] || mkdir -p "${CODE_DIR}"
+
+    parse_args "$@"
+
+    log_debug "Log level: ${LOG_LEVEL}, Log format: ${LOG_FORMAT}"
+    log_debug "CODE_DIR=${CODE_DIR}"
+    log_debug "DEFAULT_REMOTE=${DEFAULT_REMOTE}"
+    log_debug "HOSTNAME_REMOTE=${HOSTNAME_REMOTE}"
+
+    if [[ "${RUN_TEST}" == "true" ]]; then
+        test_git_urls
+        exit 0
+    fi
+
+    if [[ ${#REST_ARGS[@]} -ge 1 ]]; then
+        git_clone "${REST_ARGS[@]}"
     else
+        log_error "Git URL is required"
         usage
     fi
 }
