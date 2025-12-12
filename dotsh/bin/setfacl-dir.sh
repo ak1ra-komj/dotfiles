@@ -140,19 +140,36 @@ OPTIONS:
                               Default: simple
     -o, --owner OWNER         Set owner (format: user:group) [REQUIRED]
     -d, --directory DIR       Target directory [REQUIRED]
-    -u, --acl-user USER       Set ACL user
+    -m, --mode MODE           Permission mode in symbolic format
+                              Default: u=rwX,g=rX,o=rX (755 for dirs, 644 for files)
+    -u, --acl-user USER       Set ACL user (can combine with --acl-group)
                               Default: \$SUDO_USER or current user
+    -g, --acl-group GROUP     Set ACL group (can combine with --acl-user)
+                              Default: none
 
 DESCRIPTION:
     This script sets ownership, permissions, and ACLs for all files and
-    directories within the target directory:
-    - Directories: 755 permissions, ACL user gets rwx
-    - Files: 644 permissions, ACL user gets rw-
+    directories within the target directory.
+
+    Default behavior (u=rwX,g=rX,o=rX):
+    - Directories: 755 permissions (rwxr-xr-x)
+    - Files: 644 permissions (rw-r--r--)
+
+    The 'X' permission adds execute only to directories and files that
+    already have execute permission set.
 
 EXAMPLES:
+    # Basic usage with default permissions
     sudo ${SCRIPT_NAME} -o www-data:www-data -u debian -d /var/www/html
-    sudo ${SCRIPT_NAME} --owner nginx:nginx --directory /var/www
-    sudo ${SCRIPT_NAME} --owner nginx:nginx -d /var/www --log-level DEBUG
+
+    # Custom permissions (770 for dirs, 660 for files)
+    sudo ${SCRIPT_NAME} -o nginx:nginx -d /var/www -m u=rwX,g=rwX,o=
+
+    # Set ACL for both user and group
+    sudo ${SCRIPT_NAME} -o root:root -d /opt/app -u dev1 -g developers
+
+    # Verbose logging
+    sudo ${SCRIPT_NAME} -o nginx:nginx -d /var/www --log-level DEBUG
 
 EOF
     exit 0
@@ -161,8 +178,8 @@ EOF
 # Parse command line arguments
 parse_args() {
     local args
-    local options="ho:u:d:"
-    local longoptions="help,log-level:,log-format:,owner:,acl-user:,directory:"
+    local options="ho:u:g:d:m:"
+    local longoptions="help,log-level:,log-format:,owner:,acl-user:,acl-group:,directory:,mode:"
     if ! args=$(getopt --options="${options}" --longoptions="${longoptions}" --name="${SCRIPT_NAME}" -- "$@"); then
         usage
     fi
@@ -171,7 +188,9 @@ parse_args() {
 
     declare -g OWNER=""
     declare -g DIRECTORY=""
+    declare -g MODE="u=rwX,g=rX,o=rX"
     declare -g ACL_USER="${SUDO_USER:-${USER}}"
+    declare -g ACL_GROUP=""
 
     while true; do
         case "$1" in
@@ -194,8 +213,16 @@ parse_args() {
                 DIRECTORY="$2"
                 shift 2
                 ;;
+            -m | --mode)
+                MODE="$2"
+                shift 2
+                ;;
             -u | --acl-user)
                 ACL_USER="$2"
+                shift 2
+                ;;
+            -g | --acl-group)
+                ACL_GROUP="$2"
                 shift 2
                 ;;
             --)
@@ -214,6 +241,24 @@ parse_args() {
 check_root() {
     if [[ "${EUID}" -ne 0 ]]; then
         log_error "This script must be run as root. Use: sudo ${SCRIPT_NAME}"
+        exit 1
+    fi
+}
+
+# Validate user exists
+validate_user() {
+    local user="$1"
+    if ! getent passwd "${user}" >/dev/null 2>&1; then
+        log_error "User does not exist: ${user}"
+        exit 1
+    fi
+}
+
+# Validate group exists
+validate_group() {
+    local group="$1"
+    if ! getent group "${group}" >/dev/null 2>&1; then
+        log_error "Group does not exist: ${group}"
         exit 1
     fi
 }
@@ -243,9 +288,15 @@ validate_inputs() {
         exit 1
     fi
 
-    # Validate ACL user is not empty
-    if [[ -z "${ACL_USER}" ]]; then
-        log_error "ACL user cannot be empty"
+    # Validate ACL user is not empty when provided
+    if [[ -n "${ACL_USER}" && -z "${ACL_USER// /}" ]]; then
+        log_error "ACL user cannot be empty or whitespace"
+        exit 1
+    fi
+
+    # Validate ACL group format if provided
+    if [[ -n "${ACL_GROUP}" && -z "${ACL_GROUP// /}" ]]; then
+        log_error "ACL group cannot be empty or whitespace"
         exit 1
     fi
 }
@@ -253,28 +304,40 @@ validate_inputs() {
 # Set ACLs on directory
 setfacl_dir() {
     log_info "Setting ownership to ${OWNER} on ${DIRECTORY}"
-    chown -R "${OWNER}" "${DIRECTORY}"
+    chown --recursive "${OWNER}" "${DIRECTORY}"
 
-    log_info "Setting permissions and ACLs for directories"
-    find "${DIRECTORY}" -type d -exec chmod 755 "{}" \;
-    find "${DIRECTORY}" -type d -exec setfacl --modify="user:${ACL_USER}:rwx" "{}" \;
+    log_info "Setting permissions with mode: ${MODE}"
+    chmod --recursive "${MODE}" "${DIRECTORY}"
 
-    log_info "Setting permissions and ACLs for files"
-    find "${DIRECTORY}" -type f -exec chmod 644 "{}" \;
-    find "${DIRECTORY}" -type f -exec setfacl --modify="user:${ACL_USER}:rw-" "{}" \;
+    # Build setfacl command with user and/or group ACLs
+    local acl_rules=()
+    if [[ -n "${ACL_USER}" ]]; then
+        acl_rules+=("user:${ACL_USER}:rwX")
+        log_info "Setting ACL for user: ${ACL_USER} (rwX)"
+    fi
+    if [[ -n "${ACL_GROUP}" ]]; then
+        acl_rules+=("group:${ACL_GROUP}:rwX")
+        log_info "Setting ACL for group: ${ACL_GROUP} (rwX)"
+    fi
+
+    if [[ ${#acl_rules[@]} -gt 0 ]]; then
+        local acl_modify="${acl_rules[*]}"
+        acl_modify="${acl_modify// /,}"
+        setfacl --recursive --modify="${acl_modify}" "${DIRECTORY}"
+    fi
 
     log_info "Successfully configured permissions and ACLs"
 }
 
 main() {
-    require_command getopt setfacl find chown chmod
+    require_command getopt setfacl chown chmod
 
     parse_args "$@"
 
     check_root
 
     log_debug "Log level: ${LOG_LEVEL}, Log format: ${LOG_FORMAT}"
-    log_debug "Owner: ${OWNER}, ACL User: ${ACL_USER}, Directory: ${DIRECTORY}"
+    log_debug "Owner: ${OWNER}, Mode: ${MODE}, ACL User: ${ACL_USER}, ACL Group: ${ACL_GROUP}, Directory: ${DIRECTORY}"
 
     validate_inputs
     setfacl_dir
