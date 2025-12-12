@@ -1,7 +1,7 @@
 #!/bin/bash
 # author: ak1ra
 # date: 2025-12-11
-# ansible localhost -m copy -a 'src=dotsh/bin/setfacl-dir.sh dest=/usr/local/bin/setfacl-dir.sh mode="0755"' -v -b
+# ansible -m copy -a 'src=dotsh/bin/setfacl-dir.sh dest=/usr/local/bin/setfacl-dir.sh mode="0755"' -v -b localhost
 
 set -o errexit -o nounset -o pipefail
 
@@ -151,22 +151,30 @@ DESCRIPTION:
     This script sets ownership, permissions, and ACLs for all files and
     directories within the target directory.
 
-    Default behavior (u=rwX,g=rX,o=rX):
+    Base permissions (--mode):
+    - Default: u=rwX,g=rX,o=rX
     - Directories: 755 permissions (rwxr-xr-x)
     - Files: 644 permissions (rw-r--r--)
+    - The 'X' permission adds execute only to directories and files that
+      already have execute permission set
 
-    The 'X' permission adds execute only to directories and files that
-    already have execute permission set.
+    ACL permissions (--acl-user, --acl-group):
+    - ACL entries are always set to 'rwX' regardless of --mode
+    - Directories: ACL user/group gets rwx
+    - Files: ACL user/group gets rw-
+    - This allows specific users/groups to have consistent access while
+      maintaining different base permissions for owner/group/other
 
 EXAMPLES:
     # Basic usage with default permissions
-    sudo ${SCRIPT_NAME} -o www-data:www-data -u debian -d /var/www/html
+    sudo ${SCRIPT_NAME} -o www-data:www-data -d /var/www/html -u debian
 
-    # Custom permissions (770 for dirs, 660 for files)
-    sudo ${SCRIPT_NAME} -o nginx:nginx -d /var/www -m u=rwX,g=rwX,o=
+    # Custom base permissions (770 for dirs, 660 for files)
+    # ACL user still gets rwX (rwx on dirs, rw- on files)
+    sudo ${SCRIPT_NAME} -o nginx:nginx -d /var/www -m u=rwX,g=rwX,o= -u debian
 
     # Set ACL for both user and group
-    sudo ${SCRIPT_NAME} -o root:root -d /opt/app -u dev1 -g developers
+    sudo ${SCRIPT_NAME} -o root:root -d /opt/app -u debian -g developers
 
     # Verbose logging
     sudo ${SCRIPT_NAME} -o nginx:nginx -d /var/www --log-level DEBUG
@@ -178,8 +186,8 @@ EOF
 # Parse command line arguments
 parse_args() {
     local args
-    local options="ho:u:g:d:m:"
-    local longoptions="help,log-level:,log-format:,owner:,acl-user:,acl-group:,directory:,mode:"
+    local options="ho:d:m:u:g:"
+    local longoptions="help,log-level:,log-format:,owner:,directory:,mode:,acl-user:,acl-group:"
     if ! args=$(getopt --options="${options}" --longoptions="${longoptions}" --name="${SCRIPT_NAME}" -- "$@"); then
         usage
     fi
@@ -288,16 +296,28 @@ validate_inputs() {
         exit 1
     fi
 
-    # Validate ACL user is not empty when provided
-    if [[ -n "${ACL_USER}" && -z "${ACL_USER// /}" ]]; then
-        log_error "ACL user cannot be empty or whitespace"
-        exit 1
+    # Validate owner user and group exist
+    local owner_user="${OWNER%%:*}"
+    local owner_group="${OWNER##*:}"
+    validate_user "${owner_user}"
+    validate_group "${owner_group}"
+
+    # Validate ACL user is not empty when provided and exists
+    if [[ -n "${ACL_USER}" ]]; then
+        if [[ -z "${ACL_USER// /}" ]]; then
+            log_error "ACL user cannot be empty or whitespace"
+            exit 1
+        fi
+        validate_user "${ACL_USER}"
     fi
 
-    # Validate ACL group format if provided
-    if [[ -n "${ACL_GROUP}" && -z "${ACL_GROUP// /}" ]]; then
-        log_error "ACL group cannot be empty or whitespace"
-        exit 1
+    # Validate ACL group format if provided and exists
+    if [[ -n "${ACL_GROUP}" ]]; then
+        if [[ -z "${ACL_GROUP// /}" ]]; then
+            log_error "ACL group cannot be empty or whitespace"
+            exit 1
+        fi
+        validate_group "${ACL_GROUP}"
     fi
 }
 
@@ -306,7 +326,7 @@ setfacl_dir() {
     log_info "Setting ownership to ${OWNER} on ${DIRECTORY}"
     chown --recursive "${OWNER}" "${DIRECTORY}"
 
-    log_info "Setting permissions with mode: ${MODE}"
+    log_info "Setting base permissions with mode: ${MODE}"
     chmod --recursive "${MODE}" "${DIRECTORY}"
 
     # Build setfacl command with user and/or group ACLs
@@ -330,7 +350,7 @@ setfacl_dir() {
 }
 
 main() {
-    require_command getopt setfacl chown chmod
+    require_command getopt setfacl chown chmod getent
 
     parse_args "$@"
 
