@@ -185,6 +185,20 @@ command -v uvx >/dev/null && source <(uvx --generate-shell-completion bash)
 #     eval "$(pyenv init - bash)"
 # }
 
+# https://huggingface.co/docs/huggingface_hub/en/guides/cli#using-uv
+command -v hf >/dev/null && {
+    _hf_completion() {
+        local IFS=$'
+    '
+        COMPREPLY=($(env COMP_WORDS="${COMP_WORDS[*]}" \
+            COMP_CWORD=$COMP_CWORD \
+            _HF_COMPLETE=complete_bash $1))
+        return 0
+    }
+
+    complete -o default -F _hf_completion hf
+}
+
 # ###############################################################
 
 # golang
