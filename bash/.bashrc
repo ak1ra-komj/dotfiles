@@ -5,8 +5,8 @@
 
 # If not running interactively, don't do anything
 case $- in
-*i*) ;;
-*) return ;;
+    *i*) ;;
+    *) return ;;
 esac
 
 # don't put duplicate lines or lines starting with space in the history.
@@ -26,7 +26,7 @@ HISTFILESIZE=400000000
 
 # /etc/os-release
 if [ -f /etc/os-release ]; then
-	OS_RELEASE_ID="$(awk -F= '/^ID=/ {print $2}' /etc/os-release | tr '[:upper:]' '[:lower:]')"
+    OS_RELEASE_ID="$(awk -F= '/^ID=/ {print $2}' /etc/os-release | tr '[:upper:]' '[:lower:]')"
 fi
 
 # check the window size after each command and, if necessary,
@@ -42,12 +42,12 @@ shopt -s checkwinsize
 
 # set variable identifying the chroot you work in (used in the prompt below)
 if [ -z "${debian_chroot:-}" ] && [ -r /etc/debian_chroot ]; then
-	debian_chroot=$(cat /etc/debian_chroot)
+    debian_chroot=$(cat /etc/debian_chroot)
 fi
 
 # set a fancy prompt (non-color, unless we know we "want" color)
 case "$TERM" in
-xterm-color | *-256color) color_prompt=yes ;;
+    xterm-color | *-256color) color_prompt=yes ;;
 esac
 
 # uncomment for a colored prompt, if the terminal has the capability; turned
@@ -56,48 +56,48 @@ esac
 #force_color_prompt=yes
 
 if [ -n "$force_color_prompt" ]; then
-	if [ -x /usr/bin/tput ] && tput setaf 1 >&/dev/null; then
-		# We have color support; assume it's compliant with Ecma-48
-		# (ISO/IEC-6429). (Lack of such support is extremely rare, and such
-		# a case would tend to support setf rather than setaf.)
-		color_prompt=yes
-	else
-		color_prompt=
-	fi
+    if [ -x /usr/bin/tput ] && tput setaf 1 >&/dev/null; then
+        # We have color support; assume it's compliant with Ecma-48
+        # (ISO/IEC-6429). (Lack of such support is extremely rare, and such
+        # a case would tend to support setf rather than setaf.)
+        color_prompt=yes
+    else
+        color_prompt=
+    fi
 fi
 
 if [ "$color_prompt" = yes ]; then
-	PS1='${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ '
+    PS1='${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ '
 else
-	PS1='${debian_chroot:+($debian_chroot)}\u@\h:\w\$ '
+    PS1='${debian_chroot:+($debian_chroot)}\u@\h:\w\$ '
 fi
 unset color_prompt force_color_prompt
 
 # If this is an xterm set the title to user@host:dir
 case "$TERM" in
-xterm* | rxvt*)
-	PS1="\[\e]0;${debian_chroot:+($debian_chroot)}\u@\h: \w\a\]$PS1"
-	;;
-*) ;;
+    xterm* | rxvt*)
+        PS1="\[\e]0;${debian_chroot:+($debian_chroot)}\u@\h: \w\a\]$PS1"
+        ;;
+    *) ;;
 esac
 
 # enable color support of ls and also add handy aliases
 if [ "$OS_RELEASE_ID" = "freebsd" ]; then
-	alias ls='ls -G --color=auto'
+    alias ls='ls -G --color=auto'
 fi
 if command -v dircolors >/dev/null; then
-	if [ -r ~/.dircolors ]; then
-		eval "$(dircolors -b ~/.dircolors)"
-	else
-		eval "$(dircolors -b)"
-	fi
-	alias ls='ls --color=auto'
-	alias dir='dir --color=auto'
-	alias vdir='vdir --color=auto'
+    if [ -r ~/.dircolors ]; then
+        eval "$(dircolors -b ~/.dircolors)"
+    else
+        eval "$(dircolors -b)"
+    fi
+    alias ls='ls --color=auto'
+    alias dir='dir --color=auto'
+    alias vdir='vdir --color=auto'
 
-	alias grep='grep --color=auto'
-	alias fgrep='fgrep --color=auto'
-	alias egrep='egrep --color=auto'
+    alias grep='grep --color=auto'
+    alias fgrep='fgrep --color=auto'
+    alias egrep='egrep --color=auto'
 fi
 
 # colored GCC warnings and errors
@@ -116,41 +116,41 @@ alias l='ls -CF'
 # See /usr/share/doc/bash-doc/examples in the bash-doc package.
 
 if [ -f ~/.bash_aliases ]; then
-	source ~/.bash_aliases
+    source ~/.bash_aliases
 fi
 
 # enable programmable completion features (you don't need to enable
 # this, if it's already enabled in /etc/bash.bashrc and /etc/profile
 # sources /etc/bash.bashrc).
 if [ "$OS_RELEASE_ID" = "freebsd" ]; then
-	if [ -n "$PS1" ] && [ -f /usr/local/share/bash-completion/bash_completion.sh ]; then
-		source /usr/local/share/bash-completion/bash_completion.sh
-	fi
+    if [ -n "$PS1" ] && [ -f /usr/local/share/bash-completion/bash_completion.sh ]; then
+        source /usr/local/share/bash-completion/bash_completion.sh
+    fi
 fi
 if ! shopt -oq posix; then
-	if [ -f /usr/share/bash-completion/bash_completion ]; then
-		source /usr/share/bash-completion/bash_completion
-	elif [ -f /etc/bash_completion ]; then
-		source /etc/bash_completion
-	fi
+    if [ -f /usr/share/bash-completion/bash_completion ]; then
+        source /usr/share/bash-completion/bash_completion
+    elif [ -f /etc/bash_completion ]; then
+        source /etc/bash_completion
+    fi
 fi
 
 # ###############################################################
 
 test -d ~/.ssh/ssh-agent && {
-	# /etc/ssh/sshd_config: 受限于 MaxAuthTries, 其默认值是 6
-	# 当 ~/.ssh/ssh-agent 目录中超过 MaxAuthTries 个公钥时会报错, 因为其本质上是一个个去尝试
-	readarray -t ssh_agent < <(find ~/.ssh/ssh-agent -type f ! -name '*.pub')
-	if command -v keychain >/dev/null; then
-		# apt install keychain
-		# keychain: re-use ssh-agent and/or gpg-agent between logins
-		eval "$(keychain --eval --agents ssh "${ssh_agent[@]}")"
-	else
-		# apt install openssh-client
-		# ssh-agent: setup SSH_AUTH_SOCK & SSH_AGENT_PID env
-		eval "$(ssh-agent)"
-		ssh-add "${ssh_agent[@]}" 2>/dev/null
-	fi
+    # /etc/ssh/sshd_config: 受限于 MaxAuthTries, 其默认值是 6
+    # 当 ~/.ssh/ssh-agent 目录中超过 MaxAuthTries 个公钥时会报错, 因为其本质上是一个个去尝试
+    readarray -t ssh_agent < <(find ~/.ssh/ssh-agent -type f ! -name '*.pub')
+    if command -v keychain >/dev/null; then
+        # apt install keychain
+        # keychain: re-use ssh-agent and/or gpg-agent between logins
+        eval "$(keychain --eval --agents ssh "${ssh_agent[@]}")"
+    else
+        # apt install openssh-client
+        # ssh-agent: setup SSH_AUTH_SOCK & SSH_AGENT_PID env
+        eval "$(ssh-agent)"
+        ssh-add "${ssh_agent[@]}" 2>/dev/null
+    fi
 }
 
 # ###############################################################
@@ -190,11 +190,11 @@ command -v uvx >/dev/null && source <(uvx --generate-shell-completion bash)
 # golang
 # sudo ln -s /usr/local/go/bin/* /usr/local/bin
 command -v go >/dev/null && {
-	GOPATH=~/.go
-	PATH="${GOPATH}/bin:$PATH"
-	export PATH GOPATH
-	# GOPROXY=https://goproxy.cn,direct
-	# export PATH GOPATH GOPROXY
+    GOPATH=~/.go
+    PATH="${GOPATH}/bin:$PATH"
+    export PATH GOPATH
+    # GOPROXY=https://goproxy.cn,direct
+    # export PATH GOPATH GOPROXY
 }
 
 # ###############################################################
@@ -206,11 +206,11 @@ test -s ~/.cargo/env && source ~/.cargo/env
 # https://github.com/jj-vcs/jj
 # https://jj-vcs.github.io/jj/latest/install-and-setup/#bash
 command -v jj >/dev/null && {
-	# Standard
-	# source <(jj util completion bash)
-	# Dynamic
-	# Generally, dynamic completions provide a much better completion experience.
-	source <(COMPLETE=bash jj)
+    # Standard
+    # source <(jj util completion bash)
+    # Dynamic
+    # Generally, dynamic completions provide a much better completion experience.
+    source <(COMPLETE=bash jj)
 }
 
 # ###############################################################
@@ -236,12 +236,12 @@ command -v codex >/dev/null && source <(codex completion bash)
 
 # https://github.com/aws/aws-cli/tree/v2
 command -v aws >/dev/null && {
-	if command -v aws_completer >/dev/null; then
-		complete -C aws_completer aws
-	else
-		# apt install awscli
-		complete -C /usr/libexec/aws_completer aws
-	fi
+    if command -v aws_completer >/dev/null; then
+        complete -C aws_completer aws
+    else
+        # apt install awscli
+        complete -C /usr/libexec/aws_completer aws
+    fi
 }
 
 # ###############################################################
@@ -254,12 +254,12 @@ command -v aws >/dev/null && {
 
 # tccli: https://github.com/TencentCloud/tencentcloud-cli
 command -v tccli >/dev/null && {
-	if command -v tccli_completer >/dev/null; then
-		complete -C tccli_completer tccli
-	else
-		# pipx install tccli
-		complete -C ~/.local/pipx/venvs/tccli/bin/tccli_completer tccli
-	fi
+    if command -v tccli_completer >/dev/null; then
+        complete -C tccli_completer tccli
+    else
+        # pipx install tccli
+        complete -C ~/.local/pipx/venvs/tccli/bin/tccli_completer tccli
+    fi
 }
 
 # aliyun-cli
