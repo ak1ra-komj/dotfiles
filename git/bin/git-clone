@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -o errexit -o nounset -o pipefail
+set -euo pipefail
 
 SCRIPT_FILE="$(readlink -f "$0")"
 SCRIPT_NAME="$(basename "${SCRIPT_FILE}")"
@@ -108,21 +108,31 @@ set_log_format() {
 
 # Check if required commands are available
 require_command() {
+    local missing=()
     for c in "$@"; do
         if ! command -v "$c" >/dev/null 2>&1; then
-            log_error "Required command '$c' is not installed"
-            exit 1
+            missing+=("$c")
         fi
     done
+
+    if [[ ${#missing[@]} -gt 0 ]]; then
+        log_error "Required command(s) not installed: ${missing[*]}"
+        log_error "Please install the missing dependencies and try again"
+        exit 1
+    fi
 }
 
 # Show usage information
 usage() {
+    local exit_code="${1:-0}"
     cat <<EOF
-Usage:
+USAGE:
     ${SCRIPT_NAME} [OPTIONS] git_url
 
     Clone git repositories into organized directory structure
+
+    By default, the git remote name is set to the hostname from the git URL
+    (e.g., 'github.com', 'gitlab.com'). Use --fork to override this behavior.
 
 OPTIONS:
     -h, --help                Show this help message
@@ -133,18 +143,23 @@ OPTIONS:
                               level:  [LEVEL] message
                               full:   [timestamp][LEVEL] message
                               Default: simple
-    -f, --fork                Use 'upstream' as git remote name
-    -H, --hostname            Use git_url hostname as git remote name
+    -f, --fork                Use 'upstream' as git remote name instead of hostname
     -t, --test                Test pre-defined git_urls
 
 EXAMPLES:
     ${SCRIPT_NAME} https://github.com/user/repo.git
+        # Remote name will be 'github.com'
+
     ${SCRIPT_NAME} --fork git@github.com:user/repo.git
-    ${SCRIPT_NAME} --hostname https://gitlab.com/group/project.git
+        # Remote name will be 'upstream'
+
+    ${SCRIPT_NAME} https://gitlab.com/group/project.git
+        # Remote name will be 'gitlab.com'
+
     ${SCRIPT_NAME} --log-level DEBUG --test
 
 EOF
-    exit 0
+    exit "${exit_code}"
 }
 
 # Strip git URL to extract hostname and path
@@ -191,7 +206,7 @@ git_clone() {
     local git_url="$1"
     if [[ -z "${git_url}" ]]; then
         log_error "Git URL is required"
-        usage
+        usage 1
     fi
 
     local relpath
@@ -210,12 +225,16 @@ git_clone() {
         return
     fi
 
-    local git_remote="${DEFAULT_REMOTE}"
-    if [[ "${HOSTNAME_REMOTE}" == "true" ]]; then
+    # Determine remote name: --fork uses 'upstream', otherwise use hostname
+    local git_remote
+    if [[ "${USE_FORK_REMOTE}" == "true" ]]; then
+        git_remote="upstream"
+    else
         git_remote="${relpath%%/*}"
     fi
 
     log_info "Cloning repository to: ${repo_dir}"
+    log_debug "Using remote name: ${git_remote}"
     (
         set -x
         git clone --origin="${git_remote}" "${git_url}" "${repo_dir}"
@@ -225,23 +244,22 @@ git_clone() {
 # Parse command line arguments
 parse_args() {
     local args
-    local options="hHft"
-    local longoptions="help,log-level:,log-format:,hostname,fork,test"
+    local options="hft"
+    local longoptions="help,log-level:,log-format:,fork,test"
     if ! args=$(getopt --options="${options}" --longoptions="${longoptions}" --name="${SCRIPT_NAME}" -- "$@"); then
-        usage
+        usage 1
     fi
 
     eval set -- "${args}"
     declare -g -a REST_ARGS=()
 
-    declare -g DEFAULT_REMOTE="origin"
-    declare -g HOSTNAME_REMOTE="false"
+    declare -g USE_FORK_REMOTE="false"
     declare -g RUN_TEST="false"
 
     while true; do
         case "$1" in
             -h | --help)
-                usage
+                usage 0
                 ;;
             --log-level)
                 set_log_level "$2"
@@ -251,12 +269,8 @@ parse_args() {
                 set_log_format "$2"
                 shift 2
                 ;;
-            -H | --hostname)
-                HOSTNAME_REMOTE="true"
-                shift
-                ;;
             -f | --fork)
-                DEFAULT_REMOTE="upstream"
+                USE_FORK_REMOTE="true"
                 shift
                 ;;
             -t | --test)
@@ -269,7 +283,7 @@ parse_args() {
                 ;;
             *)
                 log_error "Unexpected option: $1"
-                usage
+                usage 1
                 ;;
         esac
     done
@@ -281,16 +295,26 @@ parse_args() {
 main() {
     require_command git getopt sed
 
-    # New-Item -ItemType Junction -Path $env:USERPROFILE\code -Value D:\code
-    declare -g CODE_DIR="${HOME}/code"
-    [[ -d "${CODE_DIR}" ]] || mkdir -p "${CODE_DIR}"
+    # Initialize CODE_DIR from environment or config file
+    # Configuration precedence: environment variable > config file > default
+    declare -g CODE_DIR="${CODE_DIR:-${HOME}/code}"
+    local git_clone_env="${HOME}/.config/git/git-clone.env"
+    if [[ -f "${git_clone_env}" ]]; then
+        # shellcheck source=/dev/null
+        source "${git_clone_env}"
+    fi
+
+    # Ensure CODE_DIR exists
+    if [[ ! -d "${CODE_DIR}" ]]; then
+        log_debug "Creating CODE_DIR: ${CODE_DIR}"
+        mkdir -p "${CODE_DIR}"
+    fi
 
     parse_args "$@"
 
     log_debug "Log level: ${LOG_LEVEL}, Log format: ${LOG_FORMAT}"
     log_debug "CODE_DIR=${CODE_DIR}"
-    log_debug "DEFAULT_REMOTE=${DEFAULT_REMOTE}"
-    log_debug "HOSTNAME_REMOTE=${HOSTNAME_REMOTE}"
+    log_debug "USE_FORK_REMOTE=${USE_FORK_REMOTE}"
 
     if [[ "${RUN_TEST}" == "true" ]]; then
         test_git_urls
@@ -301,7 +325,7 @@ main() {
         git_clone "${REST_ARGS[@]}"
     else
         log_error "Git URL is required"
-        usage
+        usage 1
     fi
 }
 
