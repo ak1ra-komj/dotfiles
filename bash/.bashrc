@@ -155,8 +155,13 @@ test -d ~/.ssh/ssh-agent && {
 
 # ###############################################################
 
-# custom http_proxy / https_proxy
-# test -f ~/.http_proxy.json && source ~/.http_proxy.sh
+# http_proxy / https_proxy examples
+# export http_proxy="http://10.0.42.253:7890"
+# export https_proxy="http://10.0.42.253:7890"
+# export no_proxy="127.0.0.0/8,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,100.64.0.0/1,169.254.0.0/16,224.0.0.0/4,240.0.0.0/4"
+# alias  no_proxy="unset http_proxy https_proxy no_proxy"
+# shellcheck source=/dev/null
+test -f ~/.config/http_proxy.env && source ~/.config/http_proxy.env
 
 # ###############################################################
 # python3
