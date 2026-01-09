@@ -9,6 +9,9 @@ SCRIPT_NAME="$(basename "${SCRIPT_FILE}")"
 declare -g LOG_LEVEL="INFO"
 declare -g LOG_FORMAT="simple"
 
+# Temporary directory for caching
+declare -g TEMP_DIR=""
+
 # Log level priorities
 declare -g -A LOG_PRIORITY=(
     ["DEBUG"]=10
@@ -125,6 +128,10 @@ require_command() {
 # Cleanup handler
 cleanup() {
     local exit_code=$?
+    if [[ -n "${TEMP_DIR}" ]] && [[ -d "${TEMP_DIR}" ]]; then
+        log_debug "Cleaning up temporary directory: ${TEMP_DIR}"
+        rm -rf "${TEMP_DIR}"
+    fi
     exit "${exit_code}"
 }
 
@@ -155,9 +162,11 @@ ARGUMENTS:
                               If not specified, shows all deployments in namespace
 
 EXAMPLES:
-    ${SCRIPT_NAME} awesome-deployment
-    ${SCRIPT_NAME} -n production awesome-deployment another-deployment
     ${SCRIPT_NAME}
+    ${SCRIPT_NAME} awesome-deployment
+    ${SCRIPT_NAME} awesome-deployment another-deployment
+    ${SCRIPT_NAME} -n production awesome-deployment another-deployment
+
     ${SCRIPT_NAME} -n kube-system
     ${SCRIPT_NAME} --all-namespaces
     ${SCRIPT_NAME} --log-level DEBUG awesome-deployment
@@ -177,31 +186,57 @@ get_current_namespace() {
     fi
 }
 
+# Create temporary directory for caching ReplicaSets
+create_temp_dir() {
+    TEMP_DIR=$(mktemp -d -t "kube-deploy-history.XXXXXXXXXX")
+    log_debug "Created temporary directory: ${TEMP_DIR}"
+}
+
+# Index ReplicaSets by deployment into temporary files
+index_replicasets() {
+    local namespace="$1"
+    shift
+    local -a rs_array=("$@")
+
+    log_debug "Indexing ${#rs_array[@]} ReplicaSets for namespace: ${namespace}"
+
+    local ns_dir="${TEMP_DIR}/${namespace}"
+    mkdir -p "${ns_dir}"
+
+    for rs_json in "${rs_array[@]}"; do
+        # Extract deployment name from owner references
+        local deploy_name
+        deploy_name=$(jq -r '
+            .metadata.ownerReferences[]?
+            | select(.kind == "Deployment")
+            | .name
+        ' <<<"${rs_json}" 2>/dev/null || true)
+
+        if [[ -n "${deploy_name}" ]]; then
+            local deploy_file="${ns_dir}/${deploy_name}.json"
+            echo "${rs_json}" >>"${deploy_file}"
+        fi
+    done
+
+    log_debug "Indexed ReplicaSets into $(find "${ns_dir}" -type f 2>/dev/null | wc -l) deployment files"
+}
+
 # Show image history for a single deployment
 show_deployment_history() {
     local namespace="$1"
     local deployment_name="$2"
-    shift 2
-    local -a rs_array=("$@")
 
     log_debug "Processing deployment: ${deployment_name} in namespace: ${namespace}"
 
-    # Build array of matching ReplicaSets
-    local -a matching_rs=()
-    for rs_json in "${rs_array[@]}"; do
-        # Check if this RS belongs to the deployment
-        if jq -e --arg deploy "${deployment_name}" '
-            .metadata.ownerReferences[]?
-            | select(.name == $deploy and .kind == "Deployment")
-        ' <<<"${rs_json}" >/dev/null 2>&1; then
-            matching_rs+=("${rs_json}")
-        fi
-    done
-
-    if [[ ${#matching_rs[@]} -eq 0 ]]; then
+    local deploy_file="${TEMP_DIR}/${namespace}/${deployment_name}.json"
+    if [[ ! -f "${deploy_file}" ]]; then
         log_warning "No ReplicaSets found for deployment '${deployment_name}' in namespace '${namespace}'"
         return 0
     fi
+
+    # Read ReplicaSets from file
+    local -a matching_rs=()
+    mapfile -t matching_rs <"${deploy_file}"
 
     # Format output data into array
     local -a output_lines=()
@@ -236,45 +271,35 @@ show_deployment_history() {
 # Show history for all deployments in namespace
 show_all_deployments_history() {
     local namespace="$1"
-    shift
-    local -a rs_array=("$@")
 
     log_debug "Getting all deployments in namespace: ${namespace}"
 
-    # Extract unique deployment names into array
+    local ns_dir="${TEMP_DIR}/${namespace}"
+    if [[ ! -d "${ns_dir}" ]]; then
+        log_warning "No deployments found in namespace '${namespace}'"
+        return 0
+    fi
+
+    # Get deployment names from files
     local -a deployment_names=()
-    local -A seen_deployments=()
-
-    for rs_json in "${rs_array[@]}"; do
-        # Extract deployment names from owner references
-        local -a deploy_refs=()
-        mapfile -t deploy_refs < <(
-            jq -r '
-                .metadata.ownerReferences[]?
-                | select(.kind == "Deployment")
-                | .name
-        ' <<<"${rs_json}"
-        )
-
-        for deploy_name in "${deploy_refs[@]}"; do
-            if [[ -z "${seen_deployments[${deploy_name}]:-}" ]]; then
-                deployment_names+=("${deploy_name}")
-                seen_deployments["${deploy_name}"]=1
-            fi
-        done
-    done
-
-    # Sort deployment names
-    mapfile -t deployment_names < <(printf "%s\n" "${deployment_names[@]}" | sort -u)
+    while IFS= read -r -d '' deploy_file; do
+        local deploy_name
+        # basename NAME [SUFFIX], If SUFFIX specified, also remove a trailing SUFFIX.
+        deploy_name=$(basename "${deploy_file}" .json)
+        deployment_names+=("${deploy_name}")
+    done < <(find "${ns_dir}" -type f -name "*.json" -print0 2>/dev/null)
 
     if [[ ${#deployment_names[@]} -eq 0 ]]; then
         log_warning "No deployments found in namespace '${namespace}'"
         return 0
     fi
 
+    # Sort deployment names
+    mapfile -t deployment_names < <(printf "%s\n" "${deployment_names[@]}" | sort)
+
     # Process each deployment
     for deployment in "${deployment_names[@]}"; do
-        show_deployment_history "${namespace}" "${deployment}" "${rs_array[@]}"
+        show_deployment_history "${namespace}" "${deployment}"
     done
 }
 
@@ -335,6 +360,9 @@ main() {
 
     parse_args "$@"
 
+    # Create temporary directory
+    create_temp_dir
+
     # Validate namespace and all-namespaces options
     if [[ "${ALL_NAMESPACES}" == true ]] && [[ -n "${NAMESPACE}" ]]; then
         log_error "Cannot specify both --namespace and --all-namespaces"
@@ -382,7 +410,7 @@ main() {
             log_warning "Deployment arguments are ignored when --all-namespaces is specified"
         fi
 
-        # Group ReplicaSets by namespace
+        # Group ReplicaSets by namespace and index them
         local -A ns_rs_map=()
         for rs_json in "${rs_array[@]}"; do
             local ns
@@ -394,22 +422,29 @@ main() {
             fi
         done
 
+        # Index ReplicaSets for each namespace
+        for ns in "${!ns_rs_map[@]}"; do
+            local -a ns_rs_array=()
+            mapfile -t ns_rs_array <<<"${ns_rs_map[${ns}]}"
+            index_replicasets "${ns}" "${ns_rs_array[@]}"
+        done
+
         # Process each namespace
         local -a namespaces=()
         mapfile -t namespaces < <(printf "%s\n" "${!ns_rs_map[@]}" | sort)
 
         for ns in "${namespaces[@]}"; do
-            local -a ns_rs_array=()
-            mapfile -t ns_rs_array <<<"${ns_rs_map[${ns}]}"
-            show_all_deployments_history "${ns}" "${ns_rs_array[@]}"
+            show_all_deployments_history "${ns}"
         done
     elif [[ ${#REST_ARGS[@]} -eq 0 ]]; then
         # No specific deployments specified, show all in namespace
-        show_all_deployments_history "${NAMESPACE}" "${rs_array[@]}"
+        index_replicasets "${NAMESPACE}" "${rs_array[@]}"
+        show_all_deployments_history "${NAMESPACE}"
     else
         # Show specific deployments
+        index_replicasets "${NAMESPACE}" "${rs_array[@]}"
         for deployment in "${REST_ARGS[@]}"; do
-            show_deployment_history "${NAMESPACE}" "${deployment}" "${rs_array[@]}"
+            show_deployment_history "${NAMESPACE}" "${deployment}"
         done
     fi
 }
