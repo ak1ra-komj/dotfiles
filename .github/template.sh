@@ -47,9 +47,7 @@ log_message() {
             log_color "${color}" "[${level}] ${message}"
             ;;
         full)
-            local timestamp
-            timestamp="$(date -u +%Y-%m-%dT%H:%M:%S+0000)"
-            log_color "${color}" "[${timestamp}][${level}] ${message}"
+            log_color "${color}" "[$(date --utc --iso-8601=seconds)][${level}] ${message}"
             ;;
         *)
             log_color "${color}" "${message}"
