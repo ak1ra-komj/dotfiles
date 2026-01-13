@@ -3,7 +3,7 @@
 # date: 2023-07-31
 # description: Dump Kubernetes resource manifests in particular namespace
 
-set -o errexit -o nounset -o pipefail
+set -euo pipefail
 
 SCRIPT_FILE="$(readlink -f "$0")"
 SCRIPT_NAME="$(basename "${SCRIPT_FILE}")"
@@ -111,18 +111,34 @@ set_log_format() {
 
 # Check if required commands are available
 require_command() {
+    local missing=()
     for c in "$@"; do
         if ! command -v "$c" >/dev/null 2>&1; then
-            log_error "Required command '$c' is not installed"
-            exit 1
+            missing+=("$c")
         fi
     done
+
+    if [[ ${#missing[@]} -gt 0 ]]; then
+        log_error "Required command(s) not installed: ${missing[*]}"
+        log_error "Please install the missing dependencies and try again"
+        exit 1
+    fi
 }
+
+# Cleanup handler
+cleanup() {
+    local exit_code=$?
+    # Add cleanup logic here if needed
+    exit "${exit_code}"
+}
+
+trap cleanup EXIT INT TERM
 
 # Show usage information
 usage() {
+    local exit_code="${1:-0}"
     cat <<EOF
-Usage:
+USAGE:
     ${SCRIPT_NAME} [OPTIONS] [NAMESPACE...]
 
     Dump Kubernetes resource manifests in particular namespace(s)
@@ -137,6 +153,8 @@ OPTIONS:
                               full:   [timestamp][LEVEL] message
                               Default: simple
     -A, --all-namespaces      Dump all namespaces
+    -f, --force               Overwrite existing manifest files
+                              Default: skip existing files
 
 ARGUMENTS:
     NAMESPACE...              One or more namespaces to dump
@@ -145,30 +163,32 @@ ARGUMENTS:
 EXAMPLES:
     ${SCRIPT_NAME} default kube-system
     ${SCRIPT_NAME} --all-namespaces
-    ${SCRIPT_NAME} -A
-    ${SCRIPT_NAME} --log-level DEBUG --log-format full
+    ${SCRIPT_NAME} --force -A
+    ${SCRIPT_NAME} --log-level DEBUG --log-format full default
 
 EOF
-    exit 0
+    exit "${exit_code}"
 }
 
 # Parse command line arguments
 parse_args() {
-    local options="hA"
-    local longoptions="help,log-level:,log-format:,all-namespaces"
     local args
+    local options="hAf"
+    local longoptions="help,log-level:,log-format:,all-namespaces,force"
     if ! args=$(getopt --options="${options}" --longoptions="${longoptions}" --name="${SCRIPT_NAME}" -- "$@"); then
-        usage
+        usage 1
     fi
+
     eval set -- "${args}"
 
     declare -g DUMP_ALL_NAMESPACES="false"
+    declare -g FORCE_OVERWRITE="false"
     declare -g -a NAMESPACES=()
 
     while true; do
         case "$1" in
             -h | --help)
-                usage
+                usage 0
                 ;;
             --log-level)
                 set_log_level "$2"
@@ -182,13 +202,17 @@ parse_args() {
                 DUMP_ALL_NAMESPACES="true"
                 shift
                 ;;
+            -f | --force)
+                FORCE_OVERWRITE="true"
+                shift
+                ;;
             --)
                 shift
                 break
                 ;;
             *)
                 log_error "Unexpected option: $1"
-                usage
+                usage 1
                 ;;
         esac
     done
@@ -201,7 +225,7 @@ parse_args() {
     else
         if [[ "$#" -eq 0 ]]; then
             log_error "No namespaces specified"
-            usage
+            usage 1
         fi
         NAMESPACES=("$@")
     fi
@@ -267,6 +291,11 @@ kube_dump_namespace() {
             local resource_name="${resource#*/}"
             local output_file="${resource_dir}/${resource_name}.json"
 
+            if [[ -f "${output_file}" && "${FORCE_OVERWRITE}" == "false" ]]; then
+                log_info "Skipping existing file: ${output_file}"
+                continue
+            fi
+
             log_info "Dumping ${resource} to ${output_file}"
 
             if ! kubectl --namespace "${namespace}" get "${resource}" --output=json |
@@ -312,6 +341,8 @@ main() {
     fi
 
     log_info "Starting kube-dump..."
+    log_debug "Log level: ${LOG_LEVEL}, Log format: ${LOG_FORMAT}"
+    log_debug "Force overwrite: ${FORCE_OVERWRITE}"
     log_info "Processing ${#NAMESPACES[@]} namespace(s)"
 
     for ns in "${NAMESPACES[@]}"; do
