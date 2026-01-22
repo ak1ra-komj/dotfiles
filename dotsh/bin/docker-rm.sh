@@ -6,9 +6,9 @@
 #   * 2023-06-26, add --help option
 #   * 2025-11-18, refactoring docker-rm.sh
 
-set -o errexit -o nounset -o pipefail
+set -o errexit -o nounset -o errtrace
 
-SCRIPT_FILE="$(readlink -f "$0")"
+SCRIPT_FILE="$(readlink -f "${0}")"
 SCRIPT_NAME="$(basename "${SCRIPT_FILE}")"
 
 # Logging configuration
@@ -26,25 +26,25 @@ declare -g -A LOG_PRIORITY=(
 
 # Logging functions
 log_color() {
-    local color="$1"
+    local color="${1}"
     shift
     if [[ -t 2 ]]; then
-        printf "\x1b[0;%sm%s\x1b[0m\n" "${color}" "$*" >&2
+        printf "\x1b[0;%sm%s\x1b[0m\n" "${color}" "${*}" >&2
     else
-        printf "%s\n" "$*" >&2
+        printf "%s\n" "${*}" >&2
     fi
 }
 
 log_message() {
-    local color="$1"
-    local level="$2"
+    local color="${1}"
+    local level="${2}"
     shift 2
 
     if [[ "${LOG_PRIORITY[$level]}" -lt "${LOG_PRIORITY[$LOG_LEVEL]}" ]]; then
         return 0
     fi
 
-    local message="$*"
+    local message="${*}"
     case "${LOG_FORMAT}" in
         simple)
             log_color "${color}" "${message}"
@@ -65,27 +65,27 @@ log_message() {
 
 log_error() {
     local RED=31
-    log_message "${RED}" "ERROR" "$@"
+    log_message "${RED}" "ERROR" "${@}"
 }
 
 log_info() {
     local GREEN=32
-    log_message "${GREEN}" "INFO" "$@"
+    log_message "${GREEN}" "INFO" "${@}"
 }
 
 log_warning() {
     local YELLOW=33
-    log_message "${YELLOW}" "WARNING" "$@"
+    log_message "${YELLOW}" "WARNING" "${@}"
 }
 
 log_debug() {
     local BLUE=34
-    log_message "${BLUE}" "DEBUG" "$@"
+    log_message "${BLUE}" "DEBUG" "${@}"
 }
 
 log_critical() {
     local CYAN=36
-    log_message "${CYAN}" "CRITICAL" "$@"
+    log_message "${CYAN}" "CRITICAL" "${@}"
 }
 
 # Set log level with validation
@@ -101,9 +101,9 @@ set_log_level() {
 
 # Set log format with validation
 set_log_format() {
-    case "$1" in
+    case "${1}" in
         simple | level | full)
-            LOG_FORMAT="$1"
+            LOG_FORMAT="${1}"
             ;;
         *)
             log_error "Invalid log format: ${1}. Valid formats: simple, level, full"
@@ -114,9 +114,9 @@ set_log_format() {
 
 # Check if required commands are available
 require_command() {
-    for c in "$@"; do
-        if ! command -v "$c" >/dev/null 2>&1; then
-            log_error "Required command '$c' is not installed"
+    for c in "${@}"; do
+        if ! command -v "${c}" >/dev/null 2>&1; then
+            log_error "Required command '${c}' is not installed"
             exit 1
         fi
     done
@@ -164,7 +164,7 @@ parse_args() {
     local args
     local options="hv"
     local longoptions="help,log-level:,log-format:,apply,invert-match"
-    if ! args=$(getopt --options="${options}" --longoptions="${longoptions}" --name="${SCRIPT_NAME}" -- "$@"); then
+    if ! args=$(getopt --options="${options}" --longoptions="${longoptions}" --name="${SCRIPT_NAME}" -- "${@}"); then
         usage
     fi
 
@@ -176,16 +176,16 @@ parse_args() {
     declare -g PATTERN="<none>"
 
     while true; do
-        case "$1" in
+        case "${1}" in
             -h | --help)
                 usage
                 ;;
             --log-level)
-                set_log_level "$2"
+                set_log_level "${2}"
                 shift 2
                 ;;
             --log-format)
-                set_log_format "$2"
+                set_log_format "${2}"
                 shift 2
                 ;;
             --apply)
@@ -201,14 +201,14 @@ parse_args() {
                 break
                 ;;
             *)
-                log_error "Unexpected option: $1"
+                log_error "Unexpected option: ${1}"
                 usage
                 ;;
         esac
     done
 
     # Capture remaining positional arguments
-    REST_ARGS=("$@")
+    REST_ARGS=("${@}")
 
     # Use first positional argument as PATTERN if provided
     if [[ ${#REST_ARGS[@]} -gt 0 ]]; then
@@ -321,7 +321,7 @@ docker_rm_images() {
 main() {
     require_command docker getopt
 
-    parse_args "$@"
+    parse_args "${@}"
 
     log_debug "Configuration:"
     log_debug "  APPLY=${APPLY}"
@@ -338,4 +338,4 @@ main() {
     log_info "Cleanup process completed"
 }
 
-main "$@"
+main "${@}"
