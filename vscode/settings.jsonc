@@ -1,0 +1,170 @@
+{
+    // ln -sf ~/.dotfiles/vscode/settings.jsonc ~/.config/Code/User/settings.json
+    // ===================================================================
+    // Commonly Used
+    // ===================================================================
+    "editor.fontSize": 18,
+    "editor.copyWithSyntaxHighlighting": false,
+    "editor.renderWhitespace": "all",
+    "workbench.startupEditor": "none",
+
+    // ===================================================================
+    // Text Editor
+    //   - Wrapping, diff editor, formatting
+    // ===================================================================
+    "editor.wordWrap": "on",
+    "editor.wordWrapColumn": 120,
+
+    "diffEditor.diffAlgorithm": "advanced",
+    "diffEditor.ignoreTrimWhitespace": false,
+
+    // ===================================================================
+    // Formatting & Language Specific Defaults
+    // ===================================================================
+    "prettier.printWidth": 120,
+
+    "[html]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "[javascript]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "[markdown]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "[yaml]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "[dockercompose]": {
+        "editor.defaultFormatter": "redhat.vscode-yaml"
+    },
+    "[github-actions-workflow]": {
+        "editor.defaultFormatter": "redhat.vscode-yaml"
+    },
+    "[json]": {
+        "editor.defaultFormatter": "vscode.json-language-features"
+    },
+    "[jsonc]": {
+        "editor.defaultFormatter": "vscode.json-language-features"
+    },
+    "[shellscript]": {
+        "editor.defaultFormatter": "mkhl.shfmt"
+    },
+
+    // ===================================================================
+    // Files & Explorer
+    // ===================================================================
+    "files.associations": {
+        "*.mdc": "markdown"
+    },
+    "explorer.confirmDelete": false,
+    "explorer.confirmDragAndDrop": false,
+
+    // ===================================================================
+    // Workbench
+    // ===================================================================
+    "workbench.editorLargeFileConfirmation": 32,
+    "workbench.editorAssociations": {
+        "*.bin": "hexEditor.hexedit",
+        "*.hex": "hexEditor.hexedit"
+    },
+
+    // ===================================================================
+    // Window
+    // ===================================================================
+
+    // ===================================================================
+    // Terminal
+    // ===================================================================
+    "terminal.integrated.defaultProfile.linux": "bash",
+    "terminal.integrated.defaultProfile.windows": "Git Bash",
+    "terminal.integrated.stickyScroll.enabled": false,
+    "terminal.integrated.profiles.linux": {
+        "bash": {
+            "path": "bash",
+            "icon": "terminal-bash"
+        },
+        "zsh": {
+            "path": "zsh"
+        },
+        "fish": {
+            "path": "fish"
+        },
+        "pwsh": {
+            "path": "pwsh",
+            "icon": "terminal-powershell"
+        },
+        "tmux": {
+            "path": "tmux",
+            "icon": "terminal-tmux"
+        }
+    },
+    "terminal.integrated.profiles.windows": {
+        "Git Bash": {
+            "source": "Git Bash"
+        },
+        "PowerShell": {
+            "source": "PowerShell",
+            "icon": "terminal-powershell"
+        },
+        "Command Prompt": {
+            "path": [
+                "${env:windir}\\Sysnative\\cmd.exe",
+                "${env:windir}\\System32\\cmd.exe"
+            ],
+            "icon": "terminal-cmd"
+        }
+    },
+
+    // ===================================================================
+    // Source Control
+    // ===================================================================
+    "git.autofetch": true,
+    "git.confirmSync": false,
+    "git.openRepositoryInParentFolders": "never",
+    "git-graph.date.format": "ISO Date & Time",
+
+    // ===================================================================
+    // Extensions
+    //   - Copilot, Ruff, Draw.io, PowerShell etc.
+    // ===================================================================
+    "extensions.ignoreRecommendations": true,
+    "powershell.promptToUpdatePowerShell": false,
+
+    "ruff.nativeServer": true,
+    "redhat.telemetry.enabled": false,
+    "hediet.vscode-drawio.appearance": "dark",
+    "hediet.vscode-drawio.theme": "kennedy",
+
+    "github.copilot.nextEditSuggestions.enabled": true,
+
+    "chat.agent.maxRequests": 50,
+    "chat.useAgentSkills": true,
+    "chat.viewSessions.enabled": false,
+    "chat.viewSessions.orientation": "stacked",
+    "chat.viewWelcome.enabled": false,
+    "chat.useNestedAgentsMdFiles": true,
+
+    // ===================================================================
+    // Notebook
+    // ===================================================================
+    "notebook.cellToolbarLocation": {
+        "default": "right",
+        "jupyter-notebook": "left"
+    },
+
+    // ===================================================================
+    // Security & Updates
+    // ===================================================================
+    "security.workspace.trust.untrustedFiles": "open",
+    "update.showReleaseNotes": false,
+
+    // ===================================================================
+    // Remote & SSH
+    // ===================================================================
+    "remote.SSH.remotePlatform": {
+        "*": "linux",
+        "ak1ra-lab": "linux"
+    },
+    "remote.SSH.remoteServerListenOnSocket": true
+}
