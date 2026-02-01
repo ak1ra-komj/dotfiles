@@ -1,0 +1,19 @@
+# grep -vE '^$|^# ?' vscode/extensions.txt | xargs -L1 code --install-extension
+
+ms-ceintl.vscode-language-pack-zh-hans
+mhutchie.git-graph
+
+ms-python.python
+charliermarsh.ruff
+
+mkhl.shfmt
+redhat.vscode-yaml
+esbenp.prettier-vscode
+edwinhuish.better-comments-next
+
+github.copilot
+ms-vscode.powershell
+
+qwtel.sqlite-viewer
+ms-vscode.hexeditor
+hediet.vscode-drawio
