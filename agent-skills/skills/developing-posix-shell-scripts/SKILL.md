@@ -1,62 +1,78 @@
 ---
 name: developing-posix-shell-scripts
-description: This skill defines mandatory guidelines for generating, modifying, or reviewing POSIX-compliant shell scripts to ensure portability and standard compliance.
+description: Guidelines for POSIX-compliant shell scripts (/bin/sh). Distinguishes between simple scripts and complex production-ready tools.
 ---
 
 # developing-posix-shell-scripts skill
 
-This skill defines mandatory guidelines for generating, modifying, or reviewing POSIX-compliant shell scripts (`/bin/sh`) to ensure portability across different UNIX-like systems and standard compliance.
+This skill defines mandatory guidelines for generating, modifying, or reviewing POSIX-compliant shell scripts (`/bin/sh`) to ensure portability across UNIX-like systems.
 
-It MUST be applied whenever strict POSIX compliance is required or when targeting `/bin/sh`.
+It MUST be applied whenever strict POSIX compliance is required (e.g., targeting `/bin/sh`, Alpine, embedded systems).
 
-## Shell Version & Compatibility
+## Script Classification
 
-- Scripts MUST be compliant with the POSIX shell standard (IEEE Std 1003.1).
-- Shebang MUST be `#!/bin/sh` (or `#!/usr/bin/env sh` if specific environment requirements exist).
-- Forbidden Bash/Zsh Features:
-  - DO NOT use arrays (`declare -a`, `name[0]`).
-  - DO NOT use `[[ ... ]]` (use `[ ... ]`).
-  - DO NOT use `function name { ... }` syntax (use `name() { ... }`).
-  - DO NOT use the `local` keyword (variables are global; use subshells or prefixed names if scope isolation is needed).
-  - DO NOT use `source` (use `.` instead).
-  - DO NOT use `<<<` (here-strings).
-  - DO NOT use `<(...)` or `>(...)` (process substitution).
-  - DO NOT use `let` or C-style `((...))` arithmetic (use `$((...))`).
-  - DO NOT use `pipefail`.
-  - DO NOT use `declare` or `typeset`.
-  - DO NOT use substitution modifiers like `${var: -1}` or `${var^^}` (use `tr`, `sed`, or other utilities).
+To balance portability with conciseness, first determine the script's category:
 
-## Control Flow & Logic
+### 1. Simple Scripts
 
-- Guard Clauses: When using `if...else` constructs or validation logic, always check the incorrect/failure condition first and return/exit early.
-- Use `[ ... ]` for conditional tests. Ensure variables inside are quoted: `[ "$var" = "value" ]`.
-- Use `case` statements for pattern matching or multiple branches.
-- Group related logic into well-named functions using standard syntax `name() { ... }`.
-- Command Substitution: Use `$(...)` instead of backticks `` `...` ``.
+- Use Case: Basic init scripts, simple file operations, minimal wrappers, or short (< 50 lines) scripts.
+- Requirements: Must follow Core Guidelines.
+- Exemptions: May omit `template.sh` boilerplate and structured logging.
 
-## Variables & Style
+### 2. Complex Scripts
 
-- Variable Expansion: Always use `${var}` for variable expansion (including positional parameters like `${1}`).
-- Quoting: Quote all variable expansions (`"${var}"`) to prevent unintended word splitting and globbing.
-- Naming: Use descriptive variable names. Since `local` is not standard, consider namespacing function variables (e.g., `_func_var`) to avoid collisions.
+- Use Case: Reusable system utilities, scripts requiring user flags (`-v`, `-f`), or complex logic.
+- Requirements: Must follow Core Guidelines AND Template & Structure.
+- Goal: Ensure standardized behaviors and robust execution across platforms.
 
-## Error Handling & Robustness
+## Core Guidelines (Mandatory for ALL Scripts)
 
-- Enable strict error handling at the start: `set -o errexit` (or `set -e`) and `set -o nounset` (or `set -u`).
-- Explicitly verify command exit codes where strictly necessary.
-- Use `printf` instead of `echo` for predictable output, especially when printing variable content.
-- Log meaningful messages to `stderr`.
+### Shell Standards
 
-## Tooling & Maintenance
+- Standard: IEEE Std 1003.1 (POSIX sh).
+- Shebang: `#!/bin/sh` (or `#!/usr/bin/env sh`).
 
-- Argument Parsing: Use `getopts` (built-in) for argument parsing. Note that `getopts` supports short options only by standard.
-- Validation:
-  - Validate all scripts using `shellcheck` (ensure it targets `sh`, e.g., via directive `#!/bin/sh`).
-- Format scripts consistently.
+### Safety & Environment
 
-## Template Script
+- Safety Modes:
+  ```sh
+  set -e  # Exit on error (ensure compatibility with target shell)
+  set -u  # Exit on unset variables
+  ```
+- Validation: All scripts must pass `shellcheck` (targeting `sh`) and be formatted.
 
-- All generated or reviewed scripts MUST be based on the provided [template.sh](template.sh).
-- When defining arguments:
-  - Fixed options (`-h`) MUST appear first in usage/help.
-  - Script-specific arguments follow.
+### Compliance (Do NOT Use Bash-isms)
+
+- No `[[ ... ]]` (Use `[ ... ]`).
+- No Arrays (`arr[0]`).
+- No `function name { ... }` (Use `name() { ... }`).
+- No `local` (Variables are global; prefix them like `_func_var`).
+- No `source` (Use `.` operator).
+- No `pipefail` (Not POSIX standard).
+- No `<<<` or process substitution `<(...)`.
+- No `bash` arithmetic `(( ... ))` (Use `$(( ... ))`).
+
+### Logic & Style
+
+- Conditionals: Quote variables in tests: `[ "${var}" = "val" ]`.
+- Quoting: ALWAYS quote variable expansions: `"${var}"`.
+- Expansion: Always use `${var}` syntax.
+- Command Substitution: Use `$(...)` instead of backticks.
+- Output: Prefer `printf` over `echo` for reliable formatting.
+
+## Template & Structure (Complex Scripts ONLY)
+
+Complex Scripts MUST be based on the provided [template.sh](template.sh).
+
+- Argument Parsing: Use `getopts` (standard built-in) for parsing short options.
+- Logging: Use the template's logging functions.
+- Structure: Group logic into functions.
+
+## Simple Script Guidelines
+
+For Simple Scripts:
+
+- Keep it minimal and portable.
+- Template boilerplate is optional.
+- Direct implementation in main scope is acceptable.
+- If arguments or logic become complex, refactor into a Complex Script.
