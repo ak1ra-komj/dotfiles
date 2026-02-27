@@ -13,7 +13,7 @@ shfmt:  ## execute shfmt on all shell script
 shellcheck:  ## execute shellcheck on all shell script
 	shfmt -f . | xargs shellcheck
 
-.PHONY: agent-skills
-agent-skills:  ## install agent-skills
-	test -d ~/.copilot || mkdir -p ~/.copilot
-	stow -R -t ~/.copilot agent-skills
+.PHONY: agents-skills
+agents-skills:  ## install agents-skills
+	test -d ~/.agents/skills || mkdir -p ~/.agents/skills
+	stow -R -t ~/.agents .agents
