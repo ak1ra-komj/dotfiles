@@ -220,7 +220,15 @@ command -v go >/dev/null && {
 
 # rustup, cargo, rustc
 # rustup 用于安装 toolchain, cargo 是 package manager, rustc 是编译器
-test -s ~/.cargo/env && source ~/.cargo/env
+# Debian 13 apt repo 中同时存在 rustup 和 rustc 且二者是互斥的, 考虑到一些项目会使用较新的 rust, 还是选择 rustup 来管理 rust 版本
+command -v cargo >/dev/null && {
+    PATH="$HOME/.cargo/bin:$PATH"
+    export PATH
+}
+
+# https://github.com/Schniz/fnm
+# Fast and simple Node.js version manager, built in Rust
+command -v fnm >/dev/null && eval "$(fnm env --shell bash)"
 
 # https://github.com/jj-vcs/jj
 # https://jj-vcs.github.io/jj/latest/install-and-setup/#bash
