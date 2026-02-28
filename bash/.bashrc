@@ -226,10 +226,6 @@ command -v cargo >/dev/null && {
     export PATH
 }
 
-# https://github.com/Schniz/fnm
-# Fast and simple Node.js version manager, built in Rust
-command -v fnm >/dev/null && eval "$(fnm env --shell bash)"
-
 # https://github.com/jj-vcs/jj
 # https://jj-vcs.github.io/jj/latest/install-and-setup/#bash
 command -v jj >/dev/null && {
@@ -242,22 +238,22 @@ command -v jj >/dev/null && {
 
 # ###############################################################
 
-# nvm 用于管理不同版本的 nodejs
-# git clone https://github.com/nvm-sh/nvm.git ~/.nvm && bash ~/.nvm/install.sh
-# NVM_DIR=~/.nvm
-# test -d "${NVM_DIR}" && {
-#     export NVM_DIR
-#     test -s "${NVM_DIR}/nvm.sh" && . "${NVM_DIR}/nvm.sh"
-#     test -s "${NVM_DIR}/bash_completion" && . "${NVM_DIR}/bash_completion"
-# }
+# https://github.com/Schniz/fnm
+# Fast and simple Node.js version manager, built in Rust
+command -v fnm >/dev/null && eval "$(fnm env --shell bash)"
 
-# How to use `npm` package from APT repo?
-# https://stackoverflow.com/a/59227497
-# apt install nodejs npm
-# npm config set prefix '~/.local'
-# npm install -g @google/gemini-cli
-# npm install -g @openai/codex
-command -v codex >/dev/null && source <(codex completion bash)
+# https://debian.griffo.io/
+# apt install bun
+command -v bun >/dev/null && {
+    PATH="$HOME/.bun/bin:$PATH"
+    export PATH
+}
+
+# Use `bun` instead of `npm` to install packages globally
+# bun add -g opencode-ai
+# bun add -g @google/gemini-cli
+# bun add -g @openai/codex
+# command -v codex >/dev/null && source <(codex completion bash)
 
 # ###############################################################
 
