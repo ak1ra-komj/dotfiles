@@ -1,5 +1,7 @@
 {
     // ln -sf ~/.dotfiles/vscode/settings.jsonc ~/.config/Code/User/settings.json
+    // New-Item -ItemType SymbolicLink -Path "${env:APPDATA}\Code\User\settings.json" -Value "${env:USERPROFILE}\.dotfiles\vscode\settings.jsonc"
+
     // ===================================================================
     // Commonly Used
     // ===================================================================
