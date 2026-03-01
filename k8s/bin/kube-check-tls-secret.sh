@@ -1,8 +1,8 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # author: ak1ra
 # date: 2025-11-13
 
-set -o errexit -o nounset -o pipefail
+set -o errexit -o nounset -o errtrace
 
 SCRIPT_FILE="$(readlink -f "$0")"
 SCRIPT_NAME="$(basename "${SCRIPT_FILE}")"
@@ -25,9 +25,9 @@ log_color() {
     local color="$1"
     shift
     if [[ -t 2 ]]; then
-        printf "\x1b[0;%sm%s\x1b[0m\n" "${color}" "$*" >&2
+        printf "\x1b[0;%sm%s\x1b[0m\n" "${color}" "${*}" >&2
     else
-        printf "%s\n" "$*" >&2
+        printf "%s\n" "${*}" >&2
     fi
 }
 
@@ -40,67 +40,33 @@ log_message() {
         return 0
     fi
 
-    local message="$*"
+    local message="${*}"
     case "${LOG_FORMAT}" in
-        simple)
-            log_color "${color}" "${message}"
-            ;;
-        level)
-            log_color "${color}" "[${level}] ${message}"
-            ;;
-        full)
-            local timestamp
-            timestamp="$(date -u +%Y-%m-%dT%H:%M:%S+0000)"
-            log_color "${color}" "[${timestamp}][${level}] ${message}"
-            ;;
-        *)
-            log_color "${color}" "${message}"
-            ;;
+        simple) log_color "${color}" "${message}" ;;
+        level) log_color "${color}" "[${level}] ${message}" ;;
+        full) log_color "${color}" "[$(date --utc --iso-8601=seconds)][${level}] ${message}" ;;
+        *) log_color "${color}" "${message}" ;;
     esac
 }
 
-log_error() {
-    local RED=31
-    log_message "${RED}" "ERROR" "$@"
-}
+log_error() { log_message 31 "ERROR" "${@}"; }
+log_info() { log_message 32 "INFO" "${@}"; }
+log_warning() { log_message 33 "WARNING" "${@}"; }
+log_debug() { log_message 34 "DEBUG" "${@}"; }
+log_critical() { log_message 36 "CRITICAL" "${@}"; }
 
-log_info() {
-    local GREEN=32
-    log_message "${GREEN}" "INFO" "$@"
-}
-
-log_warning() {
-    local YELLOW=33
-    log_message "${YELLOW}" "WARNING" "$@"
-}
-
-log_debug() {
-    local BLUE=34
-    log_message "${BLUE}" "DEBUG" "$@"
-}
-
-log_critical() {
-    local CYAN=36
-    log_message "${CYAN}" "CRITICAL" "$@"
-}
-
-# Set log level with validation
 set_log_level() {
-    local level="${1^^}" # Convert to uppercase
-    if [[ -n "${LOG_PRIORITY[${level}]:-}" ]]; then
-        LOG_LEVEL="${level}"
-    else
+    local level="${1^^}"
+    if [[ -z "${LOG_PRIORITY[${level}]:-}" ]]; then
         log_error "Invalid log level: ${1}. Valid levels: ERROR, WARNING, INFO, DEBUG"
         exit 1
     fi
+    LOG_LEVEL="${level}"
 }
 
-# Set log format with validation
 set_log_format() {
-    case "$1" in
-        simple | level | full)
-            LOG_FORMAT="$1"
-            ;;
+    case "${1}" in
+        simple | level | full) LOG_FORMAT="${1}" ;;
         *)
             log_error "Invalid log format: ${1}. Valid formats: simple, level, full"
             exit 1
@@ -108,18 +74,23 @@ set_log_format() {
     esac
 }
 
-# Check if required commands are available
 require_command() {
-    for c in "$@"; do
-        if ! command -v "$c" >/dev/null 2>&1; then
-            log_error "Required command '$c' is not installed"
-            exit 1
+    local missing=()
+    for c in "${@}"; do
+        if ! command -v "${c}" >/dev/null 2>&1; then
+            missing+=("${c}")
         fi
     done
+
+    if [[ ${#missing[@]} -gt 0 ]]; then
+        log_error "Required command(s) not installed: ${missing[*]}"
+        log_error "Please install the missing dependencies and try again"
+        exit 1
+    fi
 }
 
-# Show usage information
 usage() {
+    local exit_code="${1:-0}"
     cat <<EOF
 Usage:
     ${SCRIPT_NAME} [OPTIONS]
@@ -144,16 +115,15 @@ EXAMPLES:
     ${SCRIPT_NAME} --log-level DEBUG --log-format full
 
 EOF
-    exit 0
+    exit "${exit_code}"
 }
 
-# Parse command line arguments
 parse_args() {
     local args
     local options="hd:"
     local longoptions="help,log-level:,log-format:,days:"
-    if ! args=$(getopt --options="${options}" --longoptions="${longoptions}" --name="${SCRIPT_NAME}" -- "$@"); then
-        usage
+    if ! args=$(getopt --options="${options}" --longoptions="${longoptions}" --name="${SCRIPT_NAME}" -- "${@}"); then
+        usage 1
     fi
 
     eval set -- "${args}"
@@ -245,4 +215,4 @@ main() {
     check_tls_secrets
 }
 
-main "$@"
+main "${@}"

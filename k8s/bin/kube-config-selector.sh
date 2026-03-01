@@ -17,6 +17,6 @@ menu() {
 menu
 printf "请根据索引选择 Kubernetes 集群: "
 read -r choice
-if echo "$choice" | grep -qE '[1-9][0-9]?'; then
+if echo "$choice" | grep -qE '^[1-9][0-9]?$'; then
     export KUBECONFIG="${clusters[$((choice - 1))]}"
 fi

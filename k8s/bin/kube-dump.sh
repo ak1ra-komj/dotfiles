@@ -1,9 +1,9 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # author: ak1ra
 # date: 2023-07-31
 # description: Dump Kubernetes resource manifests in particular namespace
 
-set -euo pipefail
+set -o errexit -o nounset -o errtrace
 
 # Statistics counters
 declare -g TOTAL_RESOURCES=0
@@ -42,9 +42,9 @@ log_color() {
     local color="$1"
     shift
     if [[ -t 2 ]]; then
-        printf "\x1b[0;%sm%s\x1b[0m\n" "${color}" "$*" >&2
+        printf "\x1b[0;%sm%s\x1b[0m\n" "${color}" "${*}" >&2
     else
-        printf "%s\n" "$*" >&2
+        printf "%s\n" "${*}" >&2
     fi
 }
 
@@ -57,65 +57,33 @@ log_message() {
         return 0
     fi
 
-    local message="$*"
+    local message="${*}"
     case "${LOG_FORMAT}" in
-        simple)
-            log_color "${color}" "${message}"
-            ;;
-        level)
-            log_color "${color}" "[${level}] ${message}"
-            ;;
-        full)
-            log_color "${color}" "[$(date --utc --iso-8601=seconds)][${level}] ${message}"
-            ;;
-        *)
-            log_color "${color}" "${message}"
-            ;;
+        simple) log_color "${color}" "${message}" ;;
+        level) log_color "${color}" "[${level}] ${message}" ;;
+        full) log_color "${color}" "[$(date --utc --iso-8601=seconds)][${level}] ${message}" ;;
+        *) log_color "${color}" "${message}" ;;
     esac
 }
 
-log_error() {
-    local RED=31
-    log_message "${RED}" "ERROR" "$@"
-}
+log_error() { log_message 31 "ERROR" "${@}"; }
+log_info() { log_message 32 "INFO" "${@}"; }
+log_warning() { log_message 33 "WARNING" "${@}"; }
+log_debug() { log_message 34 "DEBUG" "${@}"; }
+log_critical() { log_message 36 "CRITICAL" "${@}"; }
 
-log_info() {
-    local GREEN=32
-    log_message "${GREEN}" "INFO" "$@"
-}
-
-log_warning() {
-    local YELLOW=33
-    log_message "${YELLOW}" "WARNING" "$@"
-}
-
-log_debug() {
-    local BLUE=34
-    log_message "${BLUE}" "DEBUG" "$@"
-}
-
-log_critical() {
-    local CYAN=36
-    log_message "${CYAN}" "CRITICAL" "$@"
-}
-
-# Set log level with validation
 set_log_level() {
-    local level="${1^^}" # Convert to uppercase
-    if [[ -n "${LOG_PRIORITY[${level}]:-}" ]]; then
-        LOG_LEVEL="${level}"
-    else
+    local level="${1^^}"
+    if [[ -z "${LOG_PRIORITY[${level}]:-}" ]]; then
         log_error "Invalid log level: ${1}. Valid levels: ERROR, WARNING, INFO, DEBUG"
         exit 1
     fi
+    LOG_LEVEL="${level}"
 }
 
-# Set log format with validation
 set_log_format() {
-    case "$1" in
-        simple | level | full)
-            LOG_FORMAT="$1"
-            ;;
+    case "${1}" in
+        simple | level | full) LOG_FORMAT="${1}" ;;
         *)
             log_error "Invalid log format: ${1}. Valid formats: simple, level, full"
             exit 1
@@ -208,7 +176,7 @@ parse_args() {
     local args
     local options="hACf"
     local longoptions="help,log-level:,log-format:,all-namespaces,include-cluster-resources,force"
-    if ! args=$(getopt --options="${options}" --longoptions="${longoptions}" --name="${SCRIPT_NAME}" -- "$@"); then
+    if ! args=$(getopt --options="${options}" --longoptions="${longoptions}" --name="${SCRIPT_NAME}" -- "${@}"); then
         usage 1
     fi
 
@@ -507,4 +475,4 @@ main() {
     print_summary
 }
 
-main "$@"
+main "${@}"
