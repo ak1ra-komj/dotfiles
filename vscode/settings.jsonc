@@ -20,6 +20,10 @@
     "diffEditor.diffAlgorithm": "advanced",
     "diffEditor.ignoreTrimWhitespace": false,
 
+    "editor.pasteAs.preferences": [
+        "text.plain"
+    ],
+
     // ===================================================================
     // Formatting & Language Specific Defaults
     // ===================================================================
