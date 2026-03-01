@@ -61,6 +61,11 @@ command -v shfmt >/dev/null && {
     alias shfmt="shfmt -w -i=4 -ci"
 }
 
+# apt install bind9-dnsutils
+command -v dig >/dev/null && {
+    alias dig='dig +nocmd +noall +answer'
+}
+
 # Kubenetes
 command -v kubectl >/dev/null && {
     alias k="kubectl"
