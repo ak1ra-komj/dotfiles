@@ -1,7 +1,9 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # https://stackoverflow.com/a/22625150
 
-curl -w @- -o /dev/null -s "$@" <<'EOF'
+set -o errexit -o nounset
+
+curl -w @- -o /dev/null -s "${@}" <<'EOF'
     time_namelookup:  %{time_namelookup}\n
        time_connect:  %{time_connect}\n
     time_appconnect:  %{time_appconnect}\n

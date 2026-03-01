@@ -1,9 +1,9 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Author: ak1ra
 # Date: 2024-04-11
 # Description: Map disk devices to their WWN and ATA/SCSI identifiers
 
-set -o errexit -o nounset -o pipefail
+set -o errexit -o nounset -o errtrace
 
 SCRIPT_FILE="$(readlink -f "$0")"
 SCRIPT_NAME="$(basename "${SCRIPT_FILE}")"
@@ -25,84 +25,54 @@ declare -g -A LOG_PRIORITY=(
 
 # Logging functions
 log_color() {
-    local color="$1"
+    local color="${1}"
     shift
     if [[ -t 2 ]]; then
-        printf "\x1b[0;%sm%s\x1b[0m\n" "${color}" "$*" >&2
+        printf "\x1b[0;%sm%s\x1b[0m\n" "${color}" "${*}" >&2
     else
-        printf "%s\n" "$*" >&2
+        printf "%s\n" "${*}" >&2
     fi
 }
 
 log_message() {
-    local color="$1"
-    local level="$2"
+    local color="${1}"
+    local level="${2}"
     shift 2
 
     if [[ "${LOG_PRIORITY[$level]}" -lt "${LOG_PRIORITY[$LOG_LEVEL]}" ]]; then
         return 0
     fi
 
-    local message="$*"
+    local message="${*}"
     case "${LOG_FORMAT}" in
-        simple)
-            log_color "${color}" "${message}"
-            ;;
-        level)
-            log_color "${color}" "[${level}] ${message}"
-            ;;
-        full)
-            local timestamp
-            timestamp="$(date -u +%Y-%m-%dT%H:%M:%S+0000)"
-            log_color "${color}" "[${timestamp}][${level}] ${message}"
-            ;;
-        *)
-            log_color "${color}" "${message}"
-            ;;
+        simple) log_color "${color}" "${message}" ;;
+        level) log_color "${color}" "[${level}] ${message}" ;;
+        full) log_color "${color}" "[$(date --utc --iso-8601=seconds)][${level}] ${message}" ;;
+        *) log_color "${color}" "${message}" ;;
     esac
 }
 
-log_error() {
-    local RED=31
-    log_message "${RED}" "ERROR" "$@"
-}
-
-log_info() {
-    local GREEN=32
-    log_message "${GREEN}" "INFO" "$@"
-}
-
-log_warning() {
-    local YELLOW=33
-    log_message "${YELLOW}" "WARNING" "$@"
-}
-
-log_debug() {
-    local BLUE=34
-    log_message "${BLUE}" "DEBUG" "$@"
-}
-
-log_critical() {
-    local CYAN=36
-    log_message "${CYAN}" "CRITICAL" "$@"
-}
+log_error() { log_message 31 "ERROR" "${@}"; }
+log_info() { log_message 32 "INFO" "${@}"; }
+log_warning() { log_message 33 "WARNING" "${@}"; }
+log_debug() { log_message 34 "DEBUG" "${@}"; }
+log_critical() { log_message 36 "CRITICAL" "${@}"; }
 
 # Set log level with validation
 set_log_level() {
-    local level="${1^^}" # Convert to uppercase
-    if [[ -n "${LOG_PRIORITY[${level}]:-}" ]]; then
-        LOG_LEVEL="${level}"
-    else
+    local level="${1^^}"
+    if [[ -z "${LOG_PRIORITY[${level}]:-}" ]]; then
         log_error "Invalid log level: ${1}. Valid levels: ERROR, WARNING, INFO, DEBUG"
         exit 1
     fi
+    LOG_LEVEL="${level}"
 }
 
 # Set log format with validation
 set_log_format() {
-    case "$1" in
+    case "${1}" in
         simple | level | full)
-            LOG_FORMAT="$1"
+            LOG_FORMAT="${1}"
             ;;
         *)
             log_error "Invalid log format: ${1}. Valid formats: simple, level, full"
@@ -113,16 +83,23 @@ set_log_format() {
 
 # Check if required commands are available
 require_command() {
-    for c in "$@"; do
-        if ! command -v "$c" >/dev/null 2>&1; then
-            log_error "Required command '$c' is not installed"
-            exit 1
+    local missing=()
+    for c in "${@}"; do
+        if ! command -v "${c}" >/dev/null 2>&1; then
+            missing+=("${c}")
         fi
     done
+
+    if [[ ${#missing[@]} -gt 0 ]]; then
+        log_error "Required command(s) not installed: ${missing[*]}"
+        log_error "Please install the missing dependencies and try again"
+        exit 1
+    fi
 }
 
 # Show usage information
 usage() {
+    local exit_code="${1:-0}"
     cat <<EOF
 Usage:
     ${SCRIPT_NAME} [OPTIONS]
@@ -151,7 +128,7 @@ NOTES:
     - Output format: DEVICE WWN-ID ATA/SCSI-ID (or EUI-ID NVME-ID)
 
 EOF
-    exit 0
+    exit "${exit_code}"
 }
 
 # Parse command line arguments
@@ -159,8 +136,8 @@ parse_args() {
     local args
     local options="h"
     local longoptions="help,log-level:,log-format:,nvme"
-    if ! args=$(getopt --options="${options}" --longoptions="${longoptions}" --name="${SCRIPT_NAME}" -- "$@"); then
-        usage
+    if ! args=$(getopt --options="${options}" --longoptions="${longoptions}" --name="${SCRIPT_NAME}" -- "${@}"); then
+        usage 1
     fi
 
     eval set -- "${args}"
@@ -169,16 +146,16 @@ parse_args() {
     declare -g SHOW_NVME=false
 
     while true; do
-        case "$1" in
+        case "${1}" in
             -h | --help)
-                usage
+                usage 0
                 ;;
             --log-level)
-                set_log_level "$2"
+                set_log_level "${2}"
                 shift 2
                 ;;
             --log-format)
-                set_log_format "$2"
+                set_log_format "${2}"
                 shift 2
                 ;;
             --nvme)
@@ -190,15 +167,15 @@ parse_args() {
                 break
                 ;;
             *)
-                log_error "Unexpected option: $1"
-                usage
+                log_error "Unexpected option: ${1}"
+                usage 1
                 ;;
         esac
     done
 
     # Capture remaining positional arguments
     # shellcheck disable=SC2034
-    REST_ARGS=("$@")
+    REST_ARGS=("${@}")
 
     log_debug "Configuration:"
     log_debug "  SHOW_NVME=${SHOW_NVME}"
@@ -344,4 +321,4 @@ main() {
     log_debug "Device mapping completed"
 }
 
-main "$@"
+main "${@}"

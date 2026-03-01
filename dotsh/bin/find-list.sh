@@ -1,15 +1,12 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-find_list() {
-    basedir="$1"
-    test -n "${basedir}" || basedir="$(pwd)"
-    realpath="$(realpath -s "${basedir}")"
+set -o errexit -o nounset
 
-    test -d "${realpath}" && {
-        cd "${realpath}" || return
-        find . -type f | LANG=C.UTF-8 sort | tee "${realpath}.list"
-        cd "$(dirname "${realpath}")" || return
-    }
-}
+basedir="$(realpath -s "${1:-$(pwd)}")"
 
-find_list "$@"
+if [[ ! -d "${basedir}" ]]; then
+    echo "Not a directory: ${basedir}" >&2
+    exit 1
+fi
+
+(cd "${basedir}" && find . -type f | LANG=C.UTF-8 sort) | tee "${basedir}.list"

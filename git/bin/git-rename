@@ -2,6 +2,8 @@
 # author: ak1ra
 # date: 2025-06-04
 
+set -o errexit -o nounset
+
 cat <<EOF
     DEPRECATED WARNING: use git-filter-repo mailmap instead!
 

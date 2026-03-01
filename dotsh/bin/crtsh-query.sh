@@ -1,11 +1,10 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-set -o errexit -o pipefail
+set -o errexit -o nounset -o pipefail
 
 crtsh_fingerprint() {
-    local cert="$1"
-    local algo="$2"
-    test -n "${algo}" || algo=sha256
+    local cert="${1}"
+    local algo="${2:-sha256}"
     openssl x509 -noout -subject -issuer -dateopt iso_8601 -dates -in "${cert}"
     openssl x509 -noout -fingerprint -"${algo}" -in "${cert}" |
         cut -d= -f2 |
@@ -14,12 +13,8 @@ crtsh_fingerprint() {
         sed "s|^|https://crt.sh/?${algo}=|"
 }
 
-crtsh_query() {
-    for cert in "$@"; do
-        echo "=== ${cert} ==="
-        crtsh_fingerprint "$cert"
-        echo
-    done
-}
-
-crtsh_query "$@"
+for cert in "${@}"; do
+    echo "=== ${cert} ==="
+    crtsh_fingerprint "${cert}"
+    echo
+done

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Author: ak1ra
 # Date: 2020-05-22
 # Update:
@@ -46,57 +46,27 @@ log_message() {
 
     local message="${*}"
     case "${LOG_FORMAT}" in
-        simple)
-            log_color "${color}" "${message}"
-            ;;
-        level)
-            log_color "${color}" "[${level}] ${message}"
-            ;;
-        full)
-            local timestamp
-            timestamp="$(date -u +%Y-%m-%dT%H:%M:%S+0000)"
-            log_color "${color}" "[${timestamp}][${level}] ${message}"
-            ;;
-        *)
-            log_color "${color}" "${message}"
-            ;;
+        simple) log_color "${color}" "${message}" ;;
+        level) log_color "${color}" "[${level}] ${message}" ;;
+        full) log_color "${color}" "[$(date --utc --iso-8601=seconds)][${level}] ${message}" ;;
+        *) log_color "${color}" "${message}" ;;
     esac
 }
 
-log_error() {
-    local RED=31
-    log_message "${RED}" "ERROR" "${@}"
-}
-
-log_info() {
-    local GREEN=32
-    log_message "${GREEN}" "INFO" "${@}"
-}
-
-log_warning() {
-    local YELLOW=33
-    log_message "${YELLOW}" "WARNING" "${@}"
-}
-
-log_debug() {
-    local BLUE=34
-    log_message "${BLUE}" "DEBUG" "${@}"
-}
-
-log_critical() {
-    local CYAN=36
-    log_message "${CYAN}" "CRITICAL" "${@}"
-}
+log_error() { log_message 31 "ERROR" "${@}"; }
+log_info() { log_message 32 "INFO" "${@}"; }
+log_warning() { log_message 33 "WARNING" "${@}"; }
+log_debug() { log_message 34 "DEBUG" "${@}"; }
+log_critical() { log_message 36 "CRITICAL" "${@}"; }
 
 # Set log level with validation
 set_log_level() {
-    local level="${1^^}" # Convert to uppercase
-    if [[ -n "${LOG_PRIORITY[${level}]:-}" ]]; then
-        LOG_LEVEL="${level}"
-    else
+    local level="${1^^}"
+    if [[ -z "${LOG_PRIORITY[${level}]:-}" ]]; then
         log_error "Invalid log level: ${1}. Valid levels: ERROR, WARNING, INFO, DEBUG"
         exit 1
     fi
+    LOG_LEVEL="${level}"
 }
 
 # Set log format with validation
@@ -114,18 +84,25 @@ set_log_format() {
 
 # Check if required commands are available
 require_command() {
+    local missing=()
     for c in "${@}"; do
         if ! command -v "${c}" >/dev/null 2>&1; then
-            log_error "Required command '${c}' is not installed"
-            exit 1
+            missing+=("${c}")
         fi
     done
+
+    if [[ ${#missing[@]} -gt 0 ]]; then
+        log_error "Required command(s) not installed: ${missing[*]}"
+        log_error "Please install the missing dependencies and try again"
+        exit 1
+    fi
 }
 
 # Show usage information
 usage() {
+    local exit_code="${1:-0}"
     cat <<EOF
-Usage:
+USAGE:
     ${SCRIPT_NAME} [OPTIONS] [PATTERN]
 
     Remove Docker containers and images based on patterns.
@@ -156,7 +133,7 @@ EXAMPLES:
     ${SCRIPT_NAME} --log-level DEBUG --log-format level
 
 EOF
-    exit 0
+    exit "${exit_code}"
 }
 
 # Parse command line arguments
@@ -165,11 +142,10 @@ parse_args() {
     local options="hv"
     local longoptions="help,log-level:,log-format:,apply,invert-match"
     if ! args=$(getopt --options="${options}" --longoptions="${longoptions}" --name="${SCRIPT_NAME}" -- "${@}"); then
-        usage
+        usage 1
     fi
 
     eval set -- "${args}"
-    declare -g -a REST_ARGS=()
 
     declare -g APPLY="false"
     declare -g INVERT_MATCH="false"
@@ -202,18 +178,13 @@ parse_args() {
                 ;;
             *)
                 log_error "Unexpected option: ${1}"
-                usage
+                usage 1
                 ;;
         esac
     done
 
-    # Capture remaining positional arguments
-    REST_ARGS=("${@}")
-
-    # Use first positional argument as PATTERN if provided
-    if [[ ${#REST_ARGS[@]} -gt 0 ]]; then
-        PATTERN="${REST_ARGS[0]}"
-        log_debug "Using positional argument as pattern: ${PATTERN}"
+    if [[ ${#} -gt 0 ]]; then
+        PATTERN="${1}"
     fi
 }
 

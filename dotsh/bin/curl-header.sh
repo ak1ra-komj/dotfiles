@@ -1,9 +1,7 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # alias curl-header="curl -s --dump-header % -o /dev/null"
 
-set -o errexit -o pipefail
+set -o errexit -o nounset
+set -x
 
-(
-    set -x
-    curl -s --dump-header % -o /dev/null "$@"
-)
+curl -s --dump-header % -o /dev/null "${@}"

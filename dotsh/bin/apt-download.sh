@@ -1,16 +1,14 @@
-#!/bin/bash
-# How to deal with virtual-packages and meta-packages?
+#!/usr/bin/env bash
 
-apt_download() {
-    apt-cache depends \
-        --recurse \
-        --no-recommends \
-        --no-suggests \
-        --no-conflicts \
-        --no-breaks \
-        --no-replaces \
-        --no-enhances "$@" |
-        grep "^\w" | xargs apt-get download
-}
+set -o errexit -o nounset
 
-apt_download "$@"
+apt-cache depends \
+    --recurse \
+    --no-recommends \
+    --no-suggests \
+    --no-conflicts \
+    --no-breaks \
+    --no-replaces \
+    --no-enhances "$@" |
+    grep -E "^\w" |
+    xargs apt-get download
