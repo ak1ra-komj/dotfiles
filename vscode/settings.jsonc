@@ -123,6 +123,25 @@
     },
 
     // ===================================================================
+    // Notebook
+    // ===================================================================
+    "notebook.cellToolbarLocation": {
+        "default": "right",
+        "jupyter-notebook": "left"
+    },
+    "update.showReleaseNotes": false,
+
+    // ===================================================================
+    // Remote & SSH
+    // ===================================================================
+    "remote.SSH.remotePlatform": {
+        "*": "linux",
+        "ak1ra-lab": "linux"
+    },
+    "remote.SSH.remoteServerListenOnSocket": true,
+    "terminal.integrated.initialHint": false,
+
+    // ===================================================================
     // Source Control
     // ===================================================================
     "git.autofetch": true,
@@ -143,6 +162,15 @@
     "hediet.vscode-drawio.theme": "kennedy",
 
     "github.copilot.nextEditSuggestions.enabled": true,
+    "github.copilot.chat.codeGeneration.useInstructionFiles": false,
+    "github.copilot.chat.additionalReadAccessPaths": [
+        "~/.agents"
+    ],
+    "github.copilot.chat.commitMessageGeneration.instructions": [
+        {
+            "text": "Use conventional commit message format; English only"
+        }
+    ],
 
     "chat.agent.maxRequests": 50,
     "chat.useAgentSkills": true,
@@ -150,27 +178,5 @@
     "chat.viewSessions.orientation": "stacked",
     "chat.viewWelcome.enabled": false,
     "chat.useNestedAgentsMdFiles": true,
-
-    // ===================================================================
-    // Notebook
-    // ===================================================================
-    "notebook.cellToolbarLocation": {
-        "default": "right",
-        "jupyter-notebook": "left"
-    },
-
-    // ===================================================================
-    // Security & Updates
-    // ===================================================================
-    "security.workspace.trust.untrustedFiles": "open",
-    "update.showReleaseNotes": false,
-
-    // ===================================================================
-    // Remote & SSH
-    // ===================================================================
-    "remote.SSH.remotePlatform": {
-        "*": "linux",
-        "ak1ra-lab": "linux"
-    },
-    "remote.SSH.remoteServerListenOnSocket": true
+    "chat.experimental.useSkillAdherencePrompt": true
 }
