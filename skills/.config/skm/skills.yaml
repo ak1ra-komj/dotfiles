@@ -1,0 +1,22 @@
+# https://github.com/reorx/skm/blob/master/skills.example.yaml
+
+agents:
+  default:
+    - standard
+
+packages:
+  - repo: https://github.com/ak1ra-komj/agents-skills
+
+  - repo: https://github.com/PsiACE/skills
+    skills:
+      - friendly-python
+      - piglet
+      - modular-go
+      - fast-rust
+
+  - repo: https://github.com/vercel-labs/agent-skills
+    skills:
+      - vercel-composition-patterns
+      - vercel-react-best-practices
+      - vercel-react-native-skills
+      - web-design-guidelines
