@@ -135,8 +135,7 @@
     // Remote & SSH
     // ===================================================================
     "remote.SSH.remotePlatform": {
-        "*": "linux",
-        "ak1ra-lab": "linux"
+        "*": "linux"
     },
     "remote.SSH.remoteServerListenOnSocket": true,
     "terminal.integrated.initialHint": false,
@@ -157,6 +156,13 @@
     "powershell.promptToUpdatePowerShell": false,
 
     "ruff.nativeServer": true,
+
+    // Use shellStartup if you use Copilot to run terminal commands.
+    // It ensures that the environment is active before the first command executes.
+    // This will become the default in a future release.
+    "python-envs.terminal.autoActivationType": "shellStartup",
+    "python-envs.terminal.showActivateButton": true,
+
     "redhat.telemetry.enabled": false,
     "hediet.vscode-drawio.appearance": "dark",
     "hediet.vscode-drawio.theme": "kennedy",
