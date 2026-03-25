@@ -48,23 +48,22 @@ END {
         }
     }
 
-    # -------- print header --------
+    # -------- print header and separator to stderr --------
     # printf "%*s", width_value, string_value
     # The asterisk (*) is a placeholder for the width value,
     # which is taken from the argument list immediately preceding the string to be printed.
-    printf "%-*s", ip_width, "SRC_IP"
+    printf "%-*s", ip_width, "SRC_IP" > "/dev/stderr"
     for (i = 1; i <= n_states; i++)
-        printf " %*s", col_width[i], state_list[i]
-    printf " %*s\n", length("TOTAL"), "TOTAL"
+        printf " %*s", col_width[i], state_list[i] > "/dev/stderr"
+    printf " %*s\n", length("TOTAL"), "TOTAL" > "/dev/stderr"
 
-    # -------- print separator line --------
-    printf "%-*s", ip_width, "------"
+    printf "%-*s", ip_width, "------" > "/dev/stderr"
     for (i = 1; i <= n_states; i++) {
         line = ""
         for (j = 1; j <= col_width[i]; j++) line = line "-"
-        printf " %s", line
+        printf " %s", line > "/dev/stderr"
     }
-    printf " %s\n", "-----"
+    printf " %s\n", "-----" > "/dev/stderr"
 
     # -------- print each IP address (sorted by total count) --------
     for (ip in total) {
