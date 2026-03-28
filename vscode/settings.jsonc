@@ -1,34 +1,30 @@
 {
     // ln -sf ~/.dotfiles/vscode/settings.jsonc ~/.config/Code/User/settings.json
     // New-Item -ItemType SymbolicLink -Path "${env:APPDATA}\Code\User\settings.json" -Value "${env:USERPROFILE}\.dotfiles\vscode\settings.jsonc"
-
     // ===================================================================
     // Commonly Used
     // ===================================================================
-    "editor.fontSize": 18,
-    "editor.copyWithSyntaxHighlighting": false,
-    "editor.renderWhitespace": "all",
+    "update.showReleaseNotes": false,
     "workbench.startupEditor": "none",
-
+    "workbench.editorLargeFileConfirmation": 32,
     // ===================================================================
     // Text Editor
     //   - Wrapping, diff editor, formatting
     // ===================================================================
+    "editor.fontSize": 18,
+    "editor.copyWithSyntaxHighlighting": false,
+    "editor.renderWhitespace": "all",
     "editor.wordWrap": "on",
     "editor.wordWrapColumn": 120,
-
-    "diffEditor.diffAlgorithm": "advanced",
-    "diffEditor.ignoreTrimWhitespace": false,
-
     "editor.pasteAs.preferences": [
         "text.plain"
     ],
-
+    "diffEditor.diffAlgorithm": "advanced",
+    "diffEditor.ignoreTrimWhitespace": false,
     // ===================================================================
     // Formatting & Language Specific Defaults
     // ===================================================================
     "prettier.printWidth": 120,
-
     "[html]": {
         "editor.defaultFormatter": "esbenp.prettier-vscode"
     },
@@ -56,7 +52,6 @@
     "[shellscript]": {
         "editor.defaultFormatter": "mkhl.shfmt"
     },
-
     // ===================================================================
     // Files & Explorer
     // ===================================================================
@@ -65,26 +60,13 @@
     },
     "explorer.confirmDelete": false,
     "explorer.confirmDragAndDrop": false,
-
-    // ===================================================================
-    // Workbench
-    // ===================================================================
-    "workbench.editorLargeFileConfirmation": 32,
-    "workbench.editorAssociations": {
-        "*.bin": "hexEditor.hexedit",
-        "*.hex": "hexEditor.hexedit"
-    },
-
-    // ===================================================================
-    // Window
-    // ===================================================================
-
     // ===================================================================
     // Terminal
     // ===================================================================
-    "terminal.integrated.defaultProfile.linux": "bash",
-    "terminal.integrated.defaultProfile.windows": "Git Bash",
+    "terminal.integrated.initialHint": false,
     "terminal.integrated.stickyScroll.enabled": false,
+    "terminal.integrated.shellIntegration.enabled": false,
+    "terminal.integrated.defaultProfile.linux": "bash",
     "terminal.integrated.profiles.linux": {
         "bash": {
             "path": "bash",
@@ -105,6 +87,7 @@
             "icon": "terminal-tmux"
         }
     },
+    "terminal.integrated.defaultProfile.windows": "Git Bash",
     "terminal.integrated.profiles.windows": {
         "Git Bash": {
             "source": "Git Bash"
@@ -121,25 +104,13 @@
             "icon": "terminal-cmd"
         }
     },
-
-    // ===================================================================
-    // Notebook
-    // ===================================================================
-    "notebook.cellToolbarLocation": {
-        "default": "right",
-        "jupyter-notebook": "left"
-    },
-    "update.showReleaseNotes": false,
-
     // ===================================================================
     // Remote & SSH
     // ===================================================================
+    "remote.SSH.remoteServerListenOnSocket": true,
     "remote.SSH.remotePlatform": {
         "*": "linux"
     },
-    "remote.SSH.remoteServerListenOnSocket": true,
-    "terminal.integrated.initialHint": false,
-
     // ===================================================================
     // Source Control
     // ===================================================================
@@ -147,29 +118,25 @@
     "git.confirmSync": false,
     "git.openRepositoryInParentFolders": "never",
     "git-graph.date.format": "ISO Date & Time",
-
     // ===================================================================
     // Extensions
     //   - Copilot, Ruff, Draw.io, PowerShell etc.
     // ===================================================================
     "extensions.ignoreRecommendations": true,
-    "powershell.promptToUpdatePowerShell": false,
-
     "ruff.nativeServer": true,
-
     // Use shellStartup if you use Copilot to run terminal commands.
     // It ensures that the environment is active before the first command executes.
     // This will become the default in a future release.
-    "python-envs.terminal.autoActivationType": "shellStartup",
+    "python-envs.terminal.autoActivationType": "off",
     "python-envs.terminal.showActivateButton": true,
-
+    "powershell.promptToUpdatePowerShell": false,
     "redhat.telemetry.enabled": false,
     "hediet.vscode-drawio.appearance": "dark",
     "hediet.vscode-drawio.theme": "kennedy",
-
     "github.copilot.nextEditSuggestions.enabled": true,
     "github.copilot.chat.codeGeneration.useInstructionFiles": false,
     "github.copilot.chat.additionalReadAccessPaths": [
+        "/tmp",
         "~/.agents"
     ],
     "github.copilot.chat.commitMessageGeneration.instructions": [
@@ -177,7 +144,6 @@
             "text": "Use conventional commit message format; English only"
         }
     ],
-
     "chat.agent.maxRequests": 50,
     "chat.useAgentSkills": true,
     "chat.viewSessions.enabled": false,
