@@ -14,6 +14,9 @@ readonly TABLE_CONF="/etc/nftables.d/proxy_guard.nft"
 
 # Target: transparent proxy port and LAN subnets
 readonly PROXY_PORT="7890"
+# LAN-facing interface name; restricts rules to traffic arriving on this interface.
+# Empty string disables iifname filtering (applies to all interfaces).
+readonly LAN_IFACE="" # e.g. "br0" or "eth1"
 # Multiple subnets are supported; add entries to the arrays as needed.
 readonly -a LAN4_SUBNETS=("10.16.0.0/20" "172.16.0.0/16")
 readonly -a LAN6_SUBNETS=() # e.g. ("fd00::/8" "fe80::/10") to enable IPv6 rules
@@ -26,7 +29,7 @@ readonly CONNLIMIT6_SET="connlimit_ip6"
 
 # Secondary protection: auto-ban on excessive new connection rate
 # auto-ban sets use add (not update) so timeout is written once and never refreshed
-readonly AUTO_BAN_RATE="300" # new TCP connections per minute triggering a ban
+readonly AUTO_BAN_RATE="300"  # new TCP connections per minute triggering a ban
 readonly AUTO_BAN_BURST="100" # token bucket burst before rate limit applies
 readonly AUTO_BAN_TIMEOUT="10m"
 readonly AUTOBAN4_SET="auto_banned_ip4"
@@ -51,12 +54,14 @@ DESCRIPTION:
     so per-client limits apply globally regardless of proxy mode or destination.
 
     Protection is fully automatic — no manual IP management required:
-      Connlimit: drop new TCP when ct count exceeds ${MAX_CONN} per source IP
-      Auto-ban:  if new TCP connections exceed ${AUTO_BAN_RATE}/min (burst ${AUTO_BAN_BURST}),
-                 the source IP is banned for ${AUTO_BAN_TIMEOUT} (all TCP dropped)
+      ct invalid:  drop malformed/out-of-state packets on all interfaces
+      Connlimit:   drop new TCP when ct count exceeds ${MAX_CONN} per source IP
+      Auto-ban:    if new TCP connections exceed ${AUTO_BAN_RATE}/min (burst ${AUTO_BAN_BURST}),
+                   the source IP is banned for ${AUTO_BAN_TIMEOUT} (all TCP dropped)
 
     LAN4 subnets: ${LAN4_SUBNETS[*]}
     LAN6 subnets: ${LAN6_SUBNETS[*]:-<disabled>}
+    LAN interface: ${LAN_IFACE:-<all interfaces>}
 
 COMMANDS:
     start             Write config and load nftables table
@@ -107,8 +112,15 @@ join_elements() {
 write_nft_conf() {
     log_info "Writing nftables config to ${TABLE_CONF}"
     mkdir -p "$(dirname "${TABLE_CONF}")"
-    local lan4_elements lan6_elements
+    local lan4_elements lan6_elements iifname_match
     lan4_elements="$(join_elements "${LAN4_SUBNETS[@]}")"
+    # Prepend iifname match to LAN-specific rules when interface is configured.
+    # ct state invalid drop is intentionally NOT restricted to one interface.
+    if [[ -n "${LAN_IFACE}" ]]; then
+        iifname_match="iifname \"${LAN_IFACE}\" "
+    else
+        iifname_match=""
+    fi
     {
         cat <<EOF
 table ${TABLE_FAMILY} ${TABLE_NAME} {
@@ -131,6 +143,7 @@ table ${TABLE_FAMILY} ${TABLE_NAME} {
     # written once on first match and never reset by subsequent packets.
     set ${AUTOBAN4_SET} {
         type ipv4_addr
+        size 4096
         timeout ${AUTO_BAN_TIMEOUT}
         flags dynamic, timeout
     }
@@ -153,6 +166,7 @@ EOF
 
     set ${AUTOBAN6_SET} {
         type ipv6_addr
+        size 4096
         timeout ${AUTO_BAN_TIMEOUT}
         flags dynamic, timeout
     }
@@ -171,35 +185,42 @@ EOF
     chain prerouting {
         type filter hook prerouting priority filter; policy accept;
 
+        # Drop invalid conntrack state packets (applies to all interfaces).
+        # Covers RST injection, out-of-window segments, and malformed packets.
+        ct state invalid counter drop
+
         # 1. Drop ALL TCP from auto-banned IPs — evaluated first to terminate both
         #    new and existing connections from malicious clients immediately.
-        ip saddr @${AUTOBAN4_SET} ip protocol tcp drop
+        ${iifname_match}ip saddr @${AUTOBAN4_SET} ip protocol tcp counter drop
 EOF
         if [[ ${#LAN6_SUBNETS[@]} -gt 0 ]]; then
             cat <<EOF
-        ip6 saddr @${AUTOBAN6_SET} ip6 nexthdr tcp drop
+        ${iifname_match}ip6 saddr @${AUTOBAN6_SET} ip6 nexthdr tcp counter drop
 EOF
         fi
         cat <<EOF
 
         # 2. Rate detection → auto-ban for ALL new TCP from LAN (any destination).
         #    add semantics: timeout written once; never refreshed by subsequent packets.
-        ip saddr @lan4_subnets ip protocol tcp ct state new meter rate_detect_ip4 { ip saddr limit rate over ${AUTO_BAN_RATE}/minute burst ${AUTO_BAN_BURST} packets } add @${AUTOBAN4_SET} { ip saddr timeout ${AUTO_BAN_TIMEOUT} } drop
+        #    log prefix emits one syslog entry per ban event for operational visibility.
+        ${iifname_match}ip saddr @lan4_subnets ip protocol tcp ct state new meter rate_detect_ip4 { ip saddr limit rate over ${AUTO_BAN_RATE}/minute burst ${AUTO_BAN_BURST} packets } add @${AUTOBAN4_SET} { ip saddr timeout ${AUTO_BAN_TIMEOUT} } log prefix "proxy-guard ban: " level warn counter drop
 EOF
         if [[ ${#LAN6_SUBNETS[@]} -gt 0 ]]; then
             cat <<EOF
-        ip6 saddr @lan6_subnets ip6 nexthdr tcp ct state new meter rate_detect_ip6 { ip6 saddr limit rate over ${AUTO_BAN_RATE}/minute burst ${AUTO_BAN_BURST} packets } add @${AUTOBAN6_SET} { ip6 saddr timeout ${AUTO_BAN_TIMEOUT} } drop
+        ${iifname_match}ip6 saddr @lan6_subnets ip6 nexthdr tcp ct state new meter rate_detect_ip6 { ip6 saddr limit rate over ${AUTO_BAN_RATE}/minute burst ${AUTO_BAN_BURST} packets } add @${AUTOBAN6_SET} { ip6 saddr timeout ${AUTO_BAN_TIMEOUT} } log prefix "proxy-guard ban: " level warn counter drop
 EOF
         fi
         cat <<EOF
 
         # 3. Connlimit: drop new TCP when per-source concurrent count exceeds MAX_CONN.
         #    Covers all destinations (transparent + explicit proxy).
-        ip saddr @lan4_subnets ip protocol tcp ct state new add @${CONNLIMIT4_SET} { ip saddr ct count over ${MAX_CONN} } drop
+        #    Note: conntrack entries are already created at priority -200 before this
+        #    hook fires; ct count reflects the current confirmed+unconfirmed total.
+        ${iifname_match}ip saddr @lan4_subnets ip protocol tcp ct state new add @${CONNLIMIT4_SET} { ip saddr ct count over ${MAX_CONN} } counter drop
 EOF
         if [[ ${#LAN6_SUBNETS[@]} -gt 0 ]]; then
             cat <<EOF
-        ip6 saddr @lan6_subnets ip6 nexthdr tcp ct state new add @${CONNLIMIT6_SET} { ip6 saddr ct count over ${MAX_CONN} } drop
+        ${iifname_match}ip6 saddr @lan6_subnets ip6 nexthdr tcp ct state new add @${CONNLIMIT6_SET} { ip6 saddr ct count over ${MAX_CONN} } counter drop
 EOF
         fi
         cat <<EOF
