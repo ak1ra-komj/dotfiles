@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # ansible localhost \
-#    -m copy -a 'src=dotsh/bin/nft-http-proxy-block.sh dest=/usr/local/sbin/nft-http-proxy-block.sh mode=0755' -v -b
+#    -m copy -a 'src=dotsh/bin/nft-restricted-ips.sh dest=/usr/local/sbin/nft-restricted-ips.sh mode=0755' -v -b
+# 当修改了如 MAX_CONN 等常量时, 需要手动删除 /etc/nftables.d/restricted_ips.nft 或者先 nft delete table inet restricted_ips, 再重新运行脚本
 
 set -o errexit -o nounset -o errtrace
 
@@ -8,12 +9,12 @@ SCRIPT_FILE="$(readlink -f "${0}")"
 SCRIPT_NAME="$(basename "${SCRIPT_FILE}")"
 
 readonly TABLE_FAMILY="inet"
-readonly TABLE_NAME="http_proxy_block"
-readonly TABLE_CONF="/etc/nftables.d/http_proxy_block.nft"
-readonly SET4_NAME="blocked_ip4"
-readonly SET6_NAME="blocked_ip6"
+readonly TABLE_NAME="restricted_ips"
+readonly TABLE_CONF="/etc/nftables.d/restricted_ips.nft"
+readonly SET4_NAME="restricted_ip4"
+readonly SET6_NAME="restricted_ip6"
 readonly SET_TIMEOUT="24h"
-readonly PROXY_PORT="7890"
+readonly MAX_CONN="100"
 
 log_info() { printf "[+] %s\n" "${*}"; }
 log_warning() { printf "[!] %s\n" "${*}" >&2; }
@@ -26,9 +27,10 @@ USAGE:
     ${SCRIPT_NAME} <command> [args]
 
 COMMANDS:
-    add <ip> [timeout]    Add IP to blocked set, auto-detects IPv4/IPv6 (e.g. timeout 30m, 2h)
-    del <ip>              Remove IP from blocked set
-    list                  List current blocked IPs (both IPv4 and IPv6)
+    add <ip> [timeout]    Add IP to restricted set, auto-detects IPv4/IPv6 (e.g. timeout 30m, 2h)
+                          IPs in the set are limited to ${MAX_CONN} concurrent connections
+    del <ip>              Remove IP from restricted set
+    list                  List current restricted IPs (both IPv4 and IPv6)
 
 EXAMPLES:
     ${SCRIPT_NAME} add 10.16.0.233
@@ -69,20 +71,20 @@ table ${TABLE_FAMILY} ${TABLE_NAME} {
     set ${SET4_NAME} {
         type ipv4_addr
         timeout ${SET_TIMEOUT}
-        flags timeout, dynamic
+        flags timeout
     }
 
     set ${SET6_NAME} {
         type ipv6_addr
         timeout ${SET_TIMEOUT}
-        flags timeout, dynamic
+        flags timeout
     }
 
     chain input {
         type filter hook input priority filter; policy accept;
         ct state established, related accept
-        ip saddr @${SET4_NAME} tcp dport ${PROXY_PORT} update @${SET4_NAME} { ip saddr timeout ${SET_TIMEOUT} } drop
-        ip6 saddr @${SET6_NAME} tcp dport ${PROXY_PORT} update @${SET6_NAME} { ip6 saddr timeout ${SET_TIMEOUT} } drop
+        ip saddr @${SET4_NAME} ct count over ${MAX_CONN} drop
+        ip6 saddr @${SET6_NAME} ct count over ${MAX_CONN} drop
     }
 }
 EOF
