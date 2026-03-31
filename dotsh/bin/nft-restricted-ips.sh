@@ -13,6 +13,7 @@ readonly TABLE_NAME="restricted_ips"
 readonly TABLE_CONF="/etc/nftables.d/restricted_ips.nft"
 readonly SET4_NAME="restricted_ip4"
 readonly SET6_NAME="restricted_ip6"
+readonly SET_MAC_NAME="restricted_mac"
 readonly SET_TIMEOUT="24h"
 readonly MAX_CONN="100"
 
@@ -28,9 +29,10 @@ USAGE:
 
 COMMANDS:
     add <ip> [timeout]    Add IP to restricted set, auto-detects IPv4/IPv6 (e.g. timeout 30m, 2h)
+                          Resolves MAC via ARP/NDP and adds to MAC set (direct L2 only)
                           IPs in the set are limited to ${MAX_CONN} concurrent connections
-    del <ip>              Remove IP from restricted set
-    list                  List current restricted IPs (both IPv4 and IPv6)
+    del <ip>              Remove IP from restricted set (also removes resolved MAC if found)
+    list                  List current restricted IPs and MACs (IPv4, IPv6, Ethernet)
 
 EXAMPLES:
     ${SCRIPT_NAME} add 10.16.0.233
@@ -80,9 +82,16 @@ table ${TABLE_FAMILY} ${TABLE_NAME} {
         flags timeout
     }
 
+    set ${SET_MAC_NAME} {
+        type ether_addr
+        timeout ${SET_TIMEOUT}
+        flags timeout
+    }
+
     chain input {
         type filter hook input priority filter; policy accept;
         ct state established, related accept
+        ether saddr @${SET_MAC_NAME} ct count over ${MAX_CONN} drop
         ip saddr @${SET4_NAME} ct count over ${MAX_CONN} drop
         ip6 saddr @${SET6_NAME} ct count over ${MAX_CONN} drop
     }
@@ -111,18 +120,30 @@ detect_set() {
     fi
 }
 
+lookup_mac() {
+    local ip="${1}"
+    # Works for both IPv4 (ARP) and IPv6 (NDP) neighbors
+    ip neigh show "${ip}" 2>/dev/null |
+        awk '$4 == "lladdr" && $NF !~ /^(INCOMPLETE|FAILED)$/ { print $5; exit }'
+}
+
 add_ip() {
     local ip="${1}"
     local timeout="${2:-}"
     local set_name
     set_name="$(detect_set "${ip}")"
+    local timeout_arg="${timeout:-${SET_TIMEOUT}}"
 
-    if [[ -n "${timeout}" ]]; then
-        nft add element "${TABLE_FAMILY}" "${TABLE_NAME}" "${set_name}" "{ ${ip} timeout ${timeout} }"
-        log_info "Added ${ip} to ${set_name} with timeout ${timeout}"
+    nft add element "${TABLE_FAMILY}" "${TABLE_NAME}" "${set_name}" "{ ${ip} timeout ${timeout_arg} }"
+    log_info "Added ${ip} to ${set_name} (timeout ${timeout_arg})"
+
+    local mac
+    mac="$(lookup_mac "${ip}")"
+    if [[ -n "${mac}" ]]; then
+        nft add element "${TABLE_FAMILY}" "${TABLE_NAME}" "${SET_MAC_NAME}" "{ ${mac} timeout ${timeout_arg} }"
+        log_info "Added ${mac} to ${SET_MAC_NAME} (timeout ${timeout_arg})"
     else
-        nft add element "${TABLE_FAMILY}" "${TABLE_NAME}" "${set_name}" "{ ${ip} timeout ${SET_TIMEOUT} }"
-        log_info "Added ${ip} to ${set_name} (default timeout ${SET_TIMEOUT})"
+        log_warning "Could not resolve MAC for ${ip}, only IP restriction applied"
     fi
 }
 
@@ -135,6 +156,18 @@ del_ip() {
     else
         log_warning "${ip} not found in ${set_name}"
     fi
+
+    local mac
+    mac="$(lookup_mac "${ip}")"
+    if [[ -n "${mac}" ]]; then
+        if nft delete element "${TABLE_FAMILY}" "${TABLE_NAME}" "${SET_MAC_NAME}" "{ ${mac} }" 2>/dev/null; then
+            log_info "Removed ${mac} from ${SET_MAC_NAME}"
+        else
+            log_warning "${mac} not found in ${SET_MAC_NAME} (may have already expired)"
+        fi
+    else
+        log_warning "Could not resolve MAC for ${ip}, MAC restriction (if any) will expire naturally"
+    fi
 }
 
 list_ips() {
@@ -142,6 +175,8 @@ list_ips() {
     nft list set "${TABLE_FAMILY}" "${TABLE_NAME}" "${SET4_NAME}"
     printf '=== %s ===\n' "${SET6_NAME}"
     nft list set "${TABLE_FAMILY}" "${TABLE_NAME}" "${SET6_NAME}"
+    printf '=== %s ===\n' "${SET_MAC_NAME}"
+    nft list set "${TABLE_FAMILY}" "${TABLE_NAME}" "${SET_MAC_NAME}"
 }
 
 main() {
