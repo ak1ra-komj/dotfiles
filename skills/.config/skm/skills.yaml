@@ -14,13 +14,3 @@ packages:
       - modular-go
       - fast-rust
 
-  - repo: https://github.com/onevcat/skills
-    skills:
-     - onevcat-jj
-
-  - repo: https://github.com/vercel-labs/agent-skills
-    skills:
-      - vercel-composition-patterns
-      - vercel-react-best-practices
-      - vercel-react-native-skills
-      - web-design-guidelines
