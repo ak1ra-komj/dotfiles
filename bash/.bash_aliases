@@ -43,9 +43,9 @@ alias tm="tmux attach || tmux"
 # -j, --max-concurrent-downloads=N Set maximum number of parallel downloads for every static (HTTP/FTP) URL, torrent and metalink. (default: 5)
 # -x, --max-connection-per-server=NUM The maximum number of connections to one server for each download. (default: 1)
 ## pipx install youtube-dl
-alias ytdl='youtube-dl --external-downloader=aria2c --external-downloader-args="--max-concurrent-downloads=8 --max-connection-per-server=4"'
+# alias ytdl='youtube-dl --external-downloader=aria2c --external-downloader-args="--max-concurrent-downloads=8 --max-connection-per-server=4"'
 ## pipx install yt-dlp
-alias ytdlp='yt-dlp --downloader=aria2c --downloader-args="aria2c:--max-concurrent-downloads=8 --max-connection-per-server=4" --embed-subs --sub-langs="all,-live_chat"'
+# alias ytdlp='yt-dlp --downloader=aria2c --downloader-args="aria2c:--max-concurrent-downloads=8 --max-connection-per-server=4" --embed-subs --sub-langs="all,-live_chat"'
 
 # apt install bat
 # https://github.com/sharkdp/bat

@@ -1,0 +1,16 @@
+# yt-dlp configuration file
+# --downloader=aria2c
+# --downloader-args="aria2c:--max-concurrent-downloads=8 --max-connection-per-server=4"
+
+--downloader=axel
+# --downloader-args="axel:--num-connections=8"
+
+--embed-subs
+--sub-langs="all,-live_chat"
+--sub-format="best[ext=srt]/best"
+
+--embed-metadata
+--embed-chapters
+
+# https://github.com/yt-dlp/yt-dlp/wiki/EJS
+--js-runtimes bun
