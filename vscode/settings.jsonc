@@ -114,6 +114,7 @@
     // ===================================================================
     // Source Control
     // ===================================================================
+    "git.addAICoAuthor": "off",
     "git.autofetch": true,
     "git.confirmSync": false,
     "git.openRepositoryInParentFolders": "never",
