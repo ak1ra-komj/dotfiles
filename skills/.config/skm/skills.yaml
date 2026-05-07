@@ -7,12 +7,12 @@ agents:
 packages:
   - repo: https://github.com/ak1ra-komj/agents-skills
     skills:
+      - commit-and-summarize
       - developing-ansible
       - developing-bash-scripts
       - developing-posix-shell-scripts
       - keep-a-changelog
       - reviewing-agents-md
-      - summarize-and-commit
 
   - repo: https://github.com/PsiACE/skills
     skills:
