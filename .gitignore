@@ -325,9 +325,23 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 
+# Ansible
+.ansible/*
+**/host_vars/*
+**/group_vars/*
+collections/
+
+build/
+examples/
+credentials/
+credentials.yaml
+
+## LLM
+.agents/state/sessions/*
+
 # General configuration file and examples folder
 examples/*
 config/*
 
-# dotsh/bin/rsync-home-dir.sh
-dotsh/bin/rsync-home-dir.env
+# Environment files
+*.env
