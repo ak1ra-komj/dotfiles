@@ -82,12 +82,13 @@ case "$TERM" in
 esac
 
 # enable color support of ls and also add handy aliases
-if [ "$OS_RELEASE_ID" = "freebsd" ]; then
-    alias ls='ls -G --color=auto'
-fi
-if command -v dircolors >/dev/null; then
-    if [ -r ~/.dircolors ]; then
-        eval "$(dircolors -b ~/.dircolors)"
+if [[ "${OS_RELEASE_ID:-}" == "freebsd" ]]; then
+    alias ls='ls -G'
+    alias dir='ls -G'
+    alias vdir='ls -lG'
+elif command -v dircolors >/dev/null; then
+    if [[ -r "${HOME}/.dircolors" ]]; then
+        eval "$(dircolors -b "${HOME}/.dircolors")"
     else
         eval "$(dircolors -b)"
     fi
@@ -115,8 +116,8 @@ alias l='ls -CF'
 # ~/.bash_aliases, instead of adding them here directly.
 # See /usr/share/doc/bash-doc/examples in the bash-doc package.
 
-if [ -f ~/.bash_aliases ]; then
-    source ~/.bash_aliases
+if [ -f "${HOME}/.bash_aliases" ]; then
+    source "${HOME}/.bash_aliases"
 fi
 
 # enable programmable completion features (you don't need to enable
@@ -135,19 +136,25 @@ if ! shopt -oq posix; then
     fi
 fi
 
-test -d ~/.ssh/ssh-agent && {
+test -d "${HOME}/.ssh/ssh-agent" && {
     # /etc/ssh/sshd_config: 受限于 MaxAuthTries, 其默认值是 6
-    # 当 ~/.ssh/ssh-agent 目录中超过 MaxAuthTries 个公钥时会报错, 因为其本质上是一个个去尝试
-    readarray -t ssh_agent < <(find ~/.ssh/ssh-agent -type f ! -name '*.pub')
+    # 当 ${HOME}/.ssh/ssh-agent 目录中超过 MaxAuthTries 个公钥时会报错, 因为其本质上是一个个去尝试
+    readarray -t ssh_agent < <(find "${HOME}/.ssh/ssh-agent" -type f ! -name '*.pub')
     if command -v keychain >/dev/null; then
         # apt install keychain
         # keychain: re-use ssh-agent and/or gpg-agent between logins
         eval "$(keychain --eval --agents ssh "${ssh_agent[@]}")"
     else
         # apt install openssh-client
-        # ssh-agent: setup SSH_AUTH_SOCK & SSH_AGENT_PID env
-        eval "$(ssh-agent)"
-        ssh-add "${ssh_agent[@]}" 2>/dev/null
+        if [[ ${#ssh_agent[@]} -gt 0 ]]; then
+            ssh_add_status=0
+            ssh-add -l >/dev/null 2>&1 || ssh_add_status=$?
+            if [[ ${ssh_add_status} -eq 2 ]]; then
+                # ssh-agent: setup SSH_AUTH_SOCK & SSH_AGENT_PID env
+                eval "$(ssh-agent)"
+            fi
+            ssh-add "${ssh_agent[@]}" 2>/dev/null
+        fi
     fi
 }
 
@@ -157,7 +164,7 @@ test -d ~/.ssh/ssh-agent && {
 # export no_proxy="127.0.0.0/8,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,100.64.0.0/1,169.254.0.0/16,224.0.0.0/4,240.0.0.0/4"
 # alias  no_proxy="unset http_proxy https_proxy no_proxy"
 # shellcheck source=/dev/null
-test -f ~/.config/http_proxy.env && source ~/.config/http_proxy.env
+test -f "${HOME}/.config/http_proxy.env" && source "${HOME}/.config/http_proxy.env"
 
 # python3
 # apt install pipx
@@ -188,11 +195,11 @@ command -v uvx >/dev/null && source <(uvx --generate-shell-completion bash)
 # https://huggingface.co/docs/huggingface_hub/en/guides/cli#using-uv
 command -v hf >/dev/null && {
     _hf_completion() {
-        local IFS=$'
-    '
-        COMPREPLY=($(env COMP_WORDS="${COMP_WORDS[*]}" \
-            COMP_CWORD=$COMP_CWORD \
-            _HF_COMPLETE=complete_bash $1))
+        readarray -t COMPREPLY < <(
+            env COMP_WORDS="${COMP_WORDS[*]}" \
+                COMP_CWORD="$COMP_CWORD" \
+                _HF_COMPLETE=complete_bash "$1"
+        )
         return 0
     }
 
@@ -202,8 +209,8 @@ command -v hf >/dev/null && {
 # golang
 # sudo ln -s /usr/local/go/bin/* /usr/local/bin
 command -v go >/dev/null && {
-    GOPATH=~/.go
-    PATH="${GOPATH}/bin:$PATH"
+    GOPATH="${HOME}/.go"
+    PATH="${GOPATH}/bin:${PATH}"
     export PATH GOPATH
     # GOPROXY=https://goproxy.cn,direct
     # export PATH GOPATH GOPROXY
@@ -213,7 +220,7 @@ command -v go >/dev/null && {
 # rustup 用于安装 toolchain, cargo 是 package manager, rustc 是编译器
 # Debian 13 apt repo 中同时存在 rustup 和 rustc 且二者是互斥的, 考虑到一些项目会使用较新的 rust, 还是选择 rustup 来管理 rust 版本
 command -v cargo >/dev/null && {
-    PATH="$HOME/.cargo/bin:$PATH"
+    PATH="${HOME}/.cargo/bin:${PATH}"
     export PATH
 }
 
@@ -234,7 +241,7 @@ command -v fnm >/dev/null && eval "$(fnm env --shell bash)"
 # https://debian.griffo.io/
 # apt install bun
 # command -v bun >/dev/null && {
-#     PATH="$HOME/.bun/bin:$PATH"
+#     PATH="${HOME}/.bun/bin:${PATH}"
 #     export PATH
 # }
 
@@ -248,7 +255,7 @@ command -v fnm >/dev/null && eval "$(fnm env --shell bash)"
 command -v aws >/dev/null && {
     if command -v aws_completer >/dev/null; then
         complete -C aws_completer aws
-    else
+    elif [[ -x /usr/libexec/aws_completer ]]; then
         # apt install awscli
         complete -C /usr/libexec/aws_completer aws
     fi
@@ -262,9 +269,9 @@ command -v aws >/dev/null && {
 command -v tccli >/dev/null && {
     if command -v tccli_completer >/dev/null; then
         complete -C tccli_completer tccli
-    else
+    elif [[ -x "${HOME}/.local/pipx/venvs/tccli/bin/tccli_completer" ]]; then
         # pipx install tccli
-        complete -C ~/.local/pipx/venvs/tccli/bin/tccli_completer tccli
+        complete -C "${HOME}/.local/pipx/venvs/tccli/bin/tccli_completer" tccli
     fi
 }
 
@@ -273,7 +280,7 @@ command -v tccli >/dev/null && {
 
 # terraform
 # https://www.hashicorp.com/official-packaging-guide
-command -v terraform >/dev/null && complete -C /usr/bin/terraform terraform
+command -v terraform >/dev/null && complete -C terraform terraform
 
 # asdf-vm/asdf
 # go install github.com/asdf-vm/asdf/cmd/asdf@latest
