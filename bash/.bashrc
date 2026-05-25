@@ -135,8 +135,6 @@ if ! shopt -oq posix; then
     fi
 fi
 
-# ###############################################################
-
 test -d ~/.ssh/ssh-agent && {
     # /etc/ssh/sshd_config: 受限于 MaxAuthTries, 其默认值是 6
     # 当 ~/.ssh/ssh-agent 目录中超过 MaxAuthTries 个公钥时会报错, 因为其本质上是一个个去尝试
@@ -153,8 +151,6 @@ test -d ~/.ssh/ssh-agent && {
     fi
 }
 
-# ###############################################################
-
 # http_proxy / https_proxy examples
 # export http_proxy="http://10.0.42.253:7890"
 # export https_proxy="http://10.0.42.253:7890"
@@ -163,7 +159,6 @@ test -d ~/.ssh/ssh-agent && {
 # shellcheck source=/dev/null
 test -f ~/.config/http_proxy.env && source ~/.config/http_proxy.env
 
-# ###############################################################
 # python3
 # apt install pipx
 # sudo activate-global-python-argcomplete
@@ -204,8 +199,6 @@ command -v hf >/dev/null && {
     complete -o default -F _hf_completion hf
 }
 
-# ###############################################################
-
 # golang
 # sudo ln -s /usr/local/go/bin/* /usr/local/bin
 command -v go >/dev/null && {
@@ -215,8 +208,6 @@ command -v go >/dev/null && {
     # GOPROXY=https://goproxy.cn,direct
     # export PATH GOPATH GOPROXY
 }
-
-# ###############################################################
 
 # rustup, cargo, rustc
 # rustup 用于安装 toolchain, cargo 是 package manager, rustc 是编译器
@@ -236,8 +227,6 @@ command -v jj >/dev/null && {
     source <(COMPLETE=bash jj)
 }
 
-# ###############################################################
-
 # https://github.com/Schniz/fnm
 # Fast and simple Node.js version manager, built in Rust
 command -v fnm >/dev/null && eval "$(fnm env --shell bash)"
@@ -255,8 +244,6 @@ command -v bun >/dev/null && {
 # bun add -g @openai/codex
 # command -v codex >/dev/null && source <(codex completion bash)
 
-# ###############################################################
-
 # https://github.com/aws/aws-cli/tree/v2
 command -v aws >/dev/null && {
     if command -v aws_completer >/dev/null; then
@@ -267,13 +254,9 @@ command -v aws >/dev/null && {
     fi
 }
 
-# ###############################################################
-
 # gcloud, google-cloud-cli
 # https://cloud.google.com/sdk/docs/install
 # /etc/bash_completion.d/gcloud -> /usr/lib/google-cloud-sdk/completion.bash.inc
-
-# ###############################################################
 
 # tccli: https://github.com/TencentCloud/tencentcloud-cli
 command -v tccli >/dev/null && {
@@ -287,8 +270,6 @@ command -v tccli >/dev/null && {
 
 # aliyun-cli
 # https://github.com/aliyun/aliyun-cli
-
-# ###############################################################
 
 # terraform
 # https://www.hashicorp.com/official-packaging-guide
@@ -308,5 +289,3 @@ command -v terraform >/dev/null && complete -C /usr/bin/terraform terraform
 # command -v glab >/dev/null && {
 #     source <(glab completion -s bash)
 # }
-
-# ###############################################################
