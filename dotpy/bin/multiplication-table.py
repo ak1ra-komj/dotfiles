@@ -62,10 +62,11 @@ def main():
 
     Some examples of digit sets:
         - "⚀⚁⚂⚃⚄⚅" (base 6)
-        - "😀😃😄😁😆😅🤣😂" (base 8)
+        - "😋😃😄😁😆😅🤣😂" (base 8)
         - "⓪①②③④⑤⑥⑦⑧⑨" (base 10)
         - "〇一二三四五六七八九" (base 10)
         - "零壹贰叁肆伍陆柒捌玖" (base 10)
+        - "〇〡〢〣〤〥〦〧〨〩" (base 10, 苏州码子)
         - "甲乙丙丁戊己庚辛壬癸" (base 10)
         - "子丑寅卯辰巳午未申酉戌亥" (base 12)
         - "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ" (base 36)
