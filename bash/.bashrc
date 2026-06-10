@@ -243,10 +243,10 @@ command -v fnm >/dev/null && {
 
 # https://debian.griffo.io/
 # apt install bun
-# command -v bun >/dev/null && {
-#     PATH="${HOME}/.bun/bin:${PATH}"
-#     export PATH
-# }
+command -v bun >/dev/null && {
+    PATH="${HOME}/.bun/bin:${PATH}"
+    export PATH
+}
 
 # Use `bun` instead of `npm` to install packages globally
 # bun add -g opencode-ai
