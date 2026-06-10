@@ -16,47 +16,48 @@
     "editor.renderWhitespace": "all",
     "editor.wordWrap": "on",
     "editor.wordWrapColumn": 120,
-    "editor.pasteAs.preferences": [
-        "text.plain"
-    ],
+
     "diffEditor.diffAlgorithm": "advanced",
     "diffEditor.ignoreTrimWhitespace": false,
+
+    "editor.pasteAs.preferences": ["markdown.link", "text.plain"],
+
     // ===================================================================
     // Formatting & Language Specific Defaults
     // ===================================================================
     "prettier.printWidth": 120,
     "[html]": {
-        "editor.defaultFormatter": "esbenp.prettier-vscode"
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
     },
     "[javascript]": {
-        "editor.defaultFormatter": "esbenp.prettier-vscode"
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
     },
     "[markdown]": {
-        "editor.defaultFormatter": "esbenp.prettier-vscode"
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
     },
     "[yaml]": {
-        "editor.defaultFormatter": "esbenp.prettier-vscode"
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
     },
     "[dockercompose]": {
-        "editor.defaultFormatter": "redhat.vscode-yaml"
+        "editor.defaultFormatter": "redhat.vscode-yaml",
     },
     "[github-actions-workflow]": {
-        "editor.defaultFormatter": "redhat.vscode-yaml"
+        "editor.defaultFormatter": "redhat.vscode-yaml",
     },
     "[json]": {
-        "editor.defaultFormatter": "vscode.json-language-features"
+        "editor.defaultFormatter": "vscode.json-language-features",
     },
     "[jsonc]": {
-        "editor.defaultFormatter": "vscode.json-language-features"
+        "editor.defaultFormatter": "vscode.json-language-features",
     },
     "[shellscript]": {
-        "editor.defaultFormatter": "mkhl.shfmt"
+        "editor.defaultFormatter": "mkhl.shfmt",
     },
     // ===================================================================
     // Files & Explorer
     // ===================================================================
     "files.associations": {
-        "*.mdc": "markdown"
+        "*.mdc": "markdown",
     },
     "explorer.confirmDelete": false,
     "explorer.confirmDragAndDrop": false,
@@ -70,46 +71,47 @@
     "terminal.integrated.profiles.linux": {
         "bash": {
             "path": "bash",
-            "icon": "terminal-bash"
+            "icon": "terminal-bash",
         },
         "zsh": {
-            "path": "zsh"
+            "path": "zsh",
         },
         "fish": {
-            "path": "fish"
+            "path": "fish",
         },
         "pwsh": {
             "path": "pwsh",
-            "icon": "terminal-powershell"
+            "icon": "terminal-powershell",
         },
         "tmux": {
             "path": "tmux",
-            "icon": "terminal-tmux"
-        }
+            "icon": "terminal-tmux",
+        },
     },
     "terminal.integrated.defaultProfile.windows": "Git Bash",
     "terminal.integrated.profiles.windows": {
         "Git Bash": {
-            "source": "Git Bash"
+            "source": "Git Bash",
         },
         "PowerShell": {
             "source": "PowerShell",
-            "icon": "terminal-powershell"
+            "icon": "terminal-powershell",
         },
         "Command Prompt": {
             "path": [
                 "${env:windir}\\Sysnative\\cmd.exe",
-                "${env:windir}\\System32\\cmd.exe"
+                "${env:windir}\\System32\\cmd.exe",
             ],
-            "icon": "terminal-cmd"
-        }
+            "icon": "terminal-cmd",
+        },
     },
     // ===================================================================
     // Remote & SSH
     // ===================================================================
     "remote.SSH.remoteServerListenOnSocket": true,
     "remote.SSH.remotePlatform": {
-        "*": "linux"
+        "abyss": "linux",
+        "sandworm": "linux",
     },
     // ===================================================================
     // Source Control
@@ -142,8 +144,8 @@
     ],
     "github.copilot.chat.commitMessageGeneration.instructions": [
         {
-            "text": "Use conventional commit message format; English only"
-        }
+            "text": "Use conventional commit message format; English only",
+        },
     ],
     "chat.agent.maxRequests": 50,
     "chat.useAgentSkills": true,
@@ -151,5 +153,5 @@
     "chat.viewSessions.orientation": "stacked",
     "chat.viewWelcome.enabled": false,
     "chat.useNestedAgentsMdFiles": true,
-    "chat.experimental.useSkillAdherencePrompt": true
+    "chat.experimental.useSkillAdherencePrompt": true,
 }
