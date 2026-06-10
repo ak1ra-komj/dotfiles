@@ -236,7 +236,10 @@ command -v jj >/dev/null && {
 
 # https://github.com/Schniz/fnm
 # Fast and simple Node.js version manager, built in Rust
-command -v fnm >/dev/null && eval "$(fnm env --shell bash)"
+command -v fnm >/dev/null && {
+    source <(fnm env --shell bash)
+    source <(fnm completions --shell bash)
+}
 
 # https://debian.griffo.io/
 # apt install bun
@@ -247,9 +250,8 @@ command -v fnm >/dev/null && eval "$(fnm env --shell bash)"
 
 # Use `bun` instead of `npm` to install packages globally
 # bun add -g opencode-ai
-# bun add -g @google/gemini-cli
 # bun add -g @openai/codex
-# command -v codex >/dev/null && source <(codex completion bash)
+command -v codex >/dev/null && source <(codex completion bash)
 
 # https://github.com/aws/aws-cli/tree/v2
 command -v aws >/dev/null && {
@@ -275,24 +277,6 @@ command -v tccli >/dev/null && {
     fi
 }
 
-# aliyun-cli
-# https://github.com/aliyun/aliyun-cli
-
 # terraform
 # https://www.hashicorp.com/official-packaging-guide
 command -v terraform >/dev/null && complete -C terraform terraform
-
-# asdf-vm/asdf
-# go install github.com/asdf-vm/asdf/cmd/asdf@latest
-# https://asdf-vm.com/guide/getting-started.html
-# command -v asdf >/dev/null && {
-#     export PATH="${ASDF_DATA_DIR:-${HOME}/.asdf}/shims:${PATH}"
-#     source <(asdf completion bash)
-# }
-
-# gitlab-org/cli
-# asdf plugin add glab; asdf install glab latest; asdf global glab latest
-# https://gitlab.com/gitlab-org/cli/-/tree/main/docs/source/completion
-# command -v glab >/dev/null && {
-#     source <(glab completion -s bash)
-# }
