@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+from __future__ import annotations
+
 import argparse
 import json
 import logging
@@ -10,6 +12,7 @@ import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any
 
 FIELD_WIDTH = 32
 DEFAULT_DB_PATH = "~/.local/share/smartctl/smartctl.db"
@@ -51,44 +54,31 @@ CREATE INDEX IF NOT EXISTS idx_smart_info_disk_ts
 """
 
 RED = "\033[31m"
-BLUE = "\033[34m"
 RESET = "\033[0m"
 
 
-def _stderr_tty():
-    return sys.stderr.isatty()
-
-
-def _stdout_tty():
+def _stdout_tty() -> bool:
     return sys.stdout.isatty()
 
 
-def _red(text):
-    if not _stdout_tty():
-        return text
-    return f"{RED}{text}{RESET}"
-
-
-def setup_logging(log_file=None):
+def setup_logging(log_file: str | None = None) -> None:
     root = logging.getLogger()
     if root.handlers:
         return
     root.setLevel(logging.DEBUG)
 
-    stderr_level = logging.DEBUG if os.environ.get("DEBUG") == "1" else logging.WARNING
-    stderr_fmt = "%(message)s"
-    if _stderr_tty() and os.environ.get("DEBUG") == "1":
-        stderr_fmt = f"{BLUE}%(message)s{RESET}"
+    debug = os.environ.get("DEBUG", "").lower() in ("1", "true", "yes")
+    stderr_level = logging.DEBUG if debug else logging.WARNING
     stderr_handler = logging.StreamHandler(sys.stderr)
     stderr_handler.setLevel(stderr_level)
-    stderr_handler.setFormatter(logging.Formatter(stderr_fmt))
+    stderr_handler.setFormatter(logging.Formatter("%(message)s"))
     root.addHandler(stderr_handler)
 
     if log_file:
         _add_file_handler(root, log_file)
 
 
-def _add_file_handler(root, log_file):
+def _add_file_handler(root: logging.Logger, log_file: str) -> None:
     try:
         log_path = Path(os.path.expanduser(log_file))
         log_path.parent.mkdir(parents=True, exist_ok=True)
@@ -105,7 +95,7 @@ def _add_file_handler(root, log_file):
         logging.warning("Cannot create log file %s: %s", log_file, exc)
 
 
-def safe_get(data, *keys, default="N/A"):
+def safe_get(data: dict[str, Any], *keys: str, default: Any = "N/A") -> Any:
     for key in keys:
         if isinstance(data, dict):
             data = data.get(key)
@@ -116,7 +106,14 @@ def safe_get(data, *keys, default="N/A"):
     return data
 
 
-def find_in_table(data, table_keys, where_key, where_value, extract_keys, default="0"):
+def find_in_table(
+    data: dict[str, Any],
+    table_keys: tuple[str, ...],
+    where_key: str,
+    where_value: str,
+    extract_keys: tuple[str, ...],
+    default: str = "0",
+) -> str:
     table = data
     for key in table_keys:
         if isinstance(table, dict):
@@ -142,20 +139,16 @@ def find_in_table(data, table_keys, where_key, where_value, extract_keys, defaul
     return default
 
 
-def check_smartctl_error(returncode):
+def check_smartctl_error(returncode: int | None) -> None:
     if returncode is None or returncode == 0:
         return
-    color_on = RED if _stderr_tty() else ""
-    color_off = RESET if _stderr_tty() else ""
-    logging.error(
-        "%ssmartctl returned error code: %d%s", color_on, returncode, color_off
-    )
+    logging.error("smartctl returned error code: %d", returncode)
     for i in range(8):
         if (returncode >> i) & 1:
-            logging.error("  %s%s%s", color_on, SMARTCTL_ERROR_MSGS[i], color_off)
+            logging.error("  %s", SMARTCTL_ERROR_MSGS[i])
 
 
-def find_disks(pattern):
+def find_disks(pattern: str) -> list[Path]:
     logging.info("Searching for disk devices matching pattern: %s", pattern)
     by_id = Path("/dev/disk/by-id")
     if not by_id.is_dir():
@@ -191,7 +184,7 @@ def find_disks(pattern):
     return disks
 
 
-def run_smartctl(disk_path):
+def run_smartctl(disk_path: Path) -> tuple[dict[str, Any], int]:
     try:
         result = subprocess.run(
             ["smartctl", "--all", "--json", str(disk_path)],
@@ -217,7 +210,7 @@ def run_smartctl(disk_path):
     return data, result.returncode
 
 
-def extract_fields(data):
+def extract_fields(data: dict[str, Any]) -> dict[str, Any]:
     model_family = str(safe_get(data, "model_family"))
     model_name = str(safe_get(data, "model_name"))
 
@@ -271,14 +264,14 @@ def extract_fields(data):
     }
 
 
-def _print_field(name, value, color=False):
+def _print_field(name: str, value: str, color: bool = False) -> None:
     if color:
         print(f"{RED}{name:<{FIELD_WIDTH}} {value}{RESET if _stdout_tty() else ''}")
     else:
         print(f"{name:<{FIELD_WIDTH}} {value}")
 
 
-def _print_fields(fields):
+def _print_fields(fields: dict[str, Any]) -> None:
     _print_field("model_family", fields["model_family"])
     _print_field("model_name", fields["model_name"])
 
@@ -305,13 +298,13 @@ def _print_fields(fields):
     _print_field("self_test_status", fields["self_test_status"])
 
 
-def print_table(disk_name, fields):
+def print_table(disk_name: str, fields: dict[str, Any]) -> None:
     print(f"====== {disk_name} ======")
     _print_fields(fields)
     print()
 
 
-def row_to_fields(row):
+def row_to_fields(row: sqlite3.Row) -> dict[str, Any]:
     rr = row["rotation_rate"]
     rr_display = f"{rr} rpm" if rr not in ("N/A", "0") else "SSD (no rotation)"
 
@@ -332,7 +325,7 @@ def row_to_fields(row):
     }
 
 
-def print_query_table(row):
+def print_query_table(row: sqlite3.Row) -> None:
     header = f"--- {row['timestamp']} | {row['disk_name']} ({row['disk_path']}) ---"
     print(header)
     fields = row_to_fields(row)
@@ -340,7 +333,13 @@ def print_query_table(row):
     print()
 
 
-def print_json_output(disk_name, disk_path, fields, raw_data, timestamp=None):
+def print_json_output(
+    disk_name: str,
+    disk_path: str,
+    fields: dict[str, Any],
+    raw_data: dict[str, Any] | None,
+    timestamp: str | None = None,
+) -> None:
     record = {"disk_name": disk_name, "disk_path": disk_path, **fields}
     if timestamp:
         record["timestamp"] = timestamp
@@ -349,7 +348,7 @@ def print_json_output(disk_name, disk_path, fields, raw_data, timestamp=None):
     sys.stdout.flush()
 
 
-def init_db(db_path):
+def init_db(db_path: str) -> sqlite3.Connection:
     expanded = Path(os.path.expanduser(db_path))
     expanded.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(str(expanded))
@@ -358,7 +357,7 @@ def init_db(db_path):
     return conn
 
 
-def open_db(db_path):
+def open_db(db_path: str) -> sqlite3.Connection | None:
     expanded = Path(os.path.expanduser(db_path))
     if not expanded.is_file():
         logging.warning("Database not found: %s", expanded)
@@ -368,8 +367,8 @@ def open_db(db_path):
     return conn
 
 
-def register_regexp(conn):
-    def _regexp(pattern, value):
+def register_regexp(conn: sqlite3.Connection) -> None:
+    def _regexp(pattern: str, value: str | None) -> bool:
         if value is None:
             return False
         return bool(re.search(pattern, value))
@@ -377,7 +376,7 @@ def register_regexp(conn):
     conn.create_function("REGEXP", 2, _regexp)
 
 
-def parse_date(date_str):
+def parse_date(date_str: str) -> datetime:
     try:
         return datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
     except ValueError:
@@ -385,7 +384,12 @@ def parse_date(date_str):
         sys.exit(1)
 
 
-def query_smart_info(conn, pattern, since, until):
+def query_smart_info(
+    conn: sqlite3.Connection,
+    pattern: str | None,
+    since: datetime | None,
+    until: datetime | None,
+) -> list[sqlite3.Row]:
     register_regexp(conn)
 
     conditions = []
@@ -410,7 +414,7 @@ def query_smart_info(conn, pattern, since, until):
     return conn.execute(sql, params).fetchall()
 
 
-def do_collect(args):
+def do_collect(args: argparse.Namespace) -> None:
     if os.geteuid() != 0:
         logging.warning(
             "This script typically requires root privileges to access SMART data."
@@ -456,7 +460,7 @@ def do_collect(args):
     sys.exit(exit_code)
 
 
-def do_query(args):
+def do_query(args: argparse.Namespace) -> None:
     since = parse_date(args.since) if args.since else None
     until = parse_date(args.until) if args.until else None
 
@@ -492,7 +496,13 @@ def do_query(args):
     conn.close()
 
 
-def save_to_db(conn, disk_name, disk_path, fields, raw_data):
+def save_to_db(
+    conn: sqlite3.Connection,
+    disk_name: str,
+    disk_path: str,
+    fields: dict[str, Any],
+    raw_data: dict[str, Any],
+) -> None:
     timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     conn.execute(
         """INSERT INTO smart_info
@@ -524,7 +534,7 @@ def save_to_db(conn, disk_name, disk_path, fields, raw_data):
     conn.commit()
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(
         description="Extract and display important SMART information from disk devices.",
         add_help=False,
