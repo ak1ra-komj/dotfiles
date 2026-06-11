@@ -7,14 +7,14 @@ import unicodedata
 FULL_WIDTH_SPACE = "　"
 
 
-def uses_full_width_spacing(digits):
+def uses_full_width_spacing(digits: str) -> bool:
     """
     Return True when the digit set contains wide or full-width symbols.
     """
     return any(unicodedata.east_asian_width(digit) in {"F", "W"} for digit in digits)
 
 
-def format_number(num, digits):
+def format_number(num: int, digits: str) -> str:
     """
     Convert a decimal number `num` to a string representation
     using the given `digits` character set as the positional system.
@@ -29,7 +29,7 @@ def format_number(num, digits):
     return "".join(reversed(result))
 
 
-def print_multiplication_table(digits):
+def print_multiplication_table(digits: str) -> None:
     """
     Print a staircase multiplication table (1 × 1 up to max × max)
     using the custom digit set. The base is determined by len(digits).
@@ -41,8 +41,8 @@ def print_multiplication_table(digits):
 
     max_num = base - 1
     # Width of the largest product string, used for alignment
-    max_product_str = format_number(max_num * max_num, digits)
-    width = len(max_product_str)
+    max_product = format_number(max_num * max_num, digits)
+    width = len(max_product)
     separator = FULL_WIDTH_SPACE if uses_full_width_spacing(digits) else " "
 
     for i in range(1, max_num + 1):
@@ -50,12 +50,12 @@ def print_multiplication_table(digits):
         items = []
         for j in range(1, i + 1):
             product_str = format_number(i * j, digits).rjust(width, separator)
-            expr = f"{digits[i]}×{digits[j]}={product_str}"
-            items.append(expr)
+            expression = f"{digits[i]}×{digits[j]}={product_str}"
+            items.append(expression)
         print(f"{row_label}{separator * 2}" + separator.join(items))
 
 
-def main():
+def main() -> None:
     """
     Print a staircase multiplication table with custom digit sets.
     The digit set defines the base and the symbols used for numbers.
