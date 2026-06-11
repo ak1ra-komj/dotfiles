@@ -15,8 +15,8 @@ from pathlib import Path
 from typing import Any
 
 FIELD_WIDTH = 32
-DEFAULT_DB_PATH = "~/.local/share/smartctl/smartctl.db"
-DEFAULT_LOG_FILE = "~/.local/state/smartctl/smartctl.log"
+DEFAULT_DB_PATH = "~/.local/share/smartmon/smartmon.db"
+DEFAULT_LOG_FILE = "~/.local/state/smartmon/smartmon.log"
 
 SMARTCTL_ERROR_MSGS = [
     "Bit 0: Command line did not parse.",
