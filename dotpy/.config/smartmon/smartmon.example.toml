@@ -1,0 +1,25 @@
+# smartmon configuration
+#
+# Values from this file override hard-coded defaults.
+# Command-line options take precedence over this file.
+#
+# To use: copy or symlink this file to ~/.config/smartmon/smartmon.toml
+#   mkdir -p ~/.config/smartmon
+#   cp dotpy/.config/smartmon/smartmon.example.toml ~/.config/smartmon/smartmon.toml
+#
+# Or specify another file with --config.
+
+# Database file path (default: ~/.local/share/smartmon/smartmon.db)
+# db_path = "~/.local/share/smartmon/smartmon.db"
+
+# Log file path (default: ~/.local/state/smartmon/smartmon.log)
+# log_file = "~/.local/state/smartmon/smartmon.log"
+
+# Output format: "table" (default) or "json"
+# format = "table"
+
+# Skip saving SMART data to database (default: false)
+# no_save = true
+
+# Disable file logging (default: false)
+# no_log_file = true

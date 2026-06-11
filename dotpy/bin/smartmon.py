@@ -14,9 +14,15 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+try:
+    import tomllib
+except ModuleNotFoundError:
+    import tomli as tomllib  # type: ignore[no-redef]
+
 FIELD_WIDTH = 32
 DEFAULT_DB_PATH = "~/.local/share/smartmon/smartmon.db"
 DEFAULT_LOG_FILE = "~/.local/state/smartmon/smartmon.log"
+DEFAULT_CONFIG_PATH = "~/.config/smartmon/smartmon.toml"
 
 SMARTCTL_ERROR_MSGS = [
     "Bit 0: Command line did not parse.",
@@ -59,6 +65,25 @@ RESET = "\033[0m"
 
 def _stdout_tty() -> bool:
     return sys.stdout.isatty()
+
+
+def load_config(config_path: str) -> dict[str, Any]:
+    expanded = Path(os.path.expanduser(config_path))
+    if not expanded.is_file():
+        return {}
+    try:
+        with open(expanded, "rb") as f:
+            config = tomllib.load(f)
+    except tomllib.TOMLDecodeError as exc:
+        logging.warning("Failed to parse config file %s: %s", expanded, exc)
+        return {}
+    except OSError as exc:
+        logging.warning("Failed to read config file %s: %s", expanded, exc)
+        return {}
+    if not isinstance(config, dict):
+        logging.warning("Invalid config file format; expected a TOML table.")
+        return {}
+    return config
 
 
 def setup_logging(log_file: str | None = None) -> None:
@@ -535,6 +560,12 @@ def save_to_db(
 
 
 def main() -> None:
+    pre_parser = argparse.ArgumentParser(add_help=False)
+    pre_parser.add_argument("--config", default=DEFAULT_CONFIG_PATH)
+    pre_args, _ = pre_parser.parse_known_args()
+
+    config = load_config(pre_args.config)
+
     parser = argparse.ArgumentParser(
         description="Extract and display important SMART information from disk devices.",
         add_help=False,
@@ -598,6 +629,21 @@ def main() -> None:
         "--no-log-file",
         action="store_true",
         help="Disable file logging",
+    )
+
+    cfg_group = parser.add_argument_group("configuration")
+    cfg_group.add_argument(
+        "--config",
+        default=pre_args.config,
+        help=f"TOML config file path (default: {DEFAULT_CONFIG_PATH})",
+    )
+
+    parser.set_defaults(
+        json=config.get("format") == "json",
+        no_save=config.get("no_save", False),
+        no_log_file=config.get("no_log_file", False),
+        db_path=config.get("db_path", DEFAULT_DB_PATH),
+        log_file=config.get("log_file", DEFAULT_LOG_FILE),
     )
 
     args = parser.parse_args()
